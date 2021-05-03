@@ -15,6 +15,7 @@ itk_module(VkFFT
   DEPENDS
     ITKCommon
     ITKStatistics
+    ITKFFT
   COMPILE_DEPENDS
     ITKImageSources
   TEST_DEPENDS
