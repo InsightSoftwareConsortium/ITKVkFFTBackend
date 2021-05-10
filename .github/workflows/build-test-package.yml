@@ -143,11 +143,12 @@ jobs:
         set(dashboard_no_clean 1)
         set(ENV{CC} ${{ matrix.c-compiler }})
         set(ENV{CXX} ${{ matrix.cxx-compiler }})
+        set(ENV{OCL_ROOT} "$ENV{GITHUB_WORKSPACE}/OpenCL-ICD-Loader-build/")
         if(WIN32)
           set(ENV{PATH} "\${CTEST_DASHBOARD_ROOT}/ITK-build/bin;\$ENV{PATH}")
         endif()
         set(dashboard_cache "
-        OpenCL-ICD-Loader_DIR:PATH=\${CTEST_DASHBOARD_ROOT}/OpenCL-ICD-Loader-build
+        OpenCL_INCLUDE_DIR:PATH=\$ENV{GITHUB_WORKSPACE}/OpenCL-ICD-Loader/inc
         ITK_DIR:PATH=\${CTEST_DASHBOARD_ROOT}/ITK-build
         BUILD_TESTING:BOOL=ON
         ")
