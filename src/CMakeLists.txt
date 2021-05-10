@@ -1,5 +1,5 @@
-set(VkFFT_SRCS
+set(VkFFTBackend_SRCS
   itkMinimalStandardRandomVariateGenerator.cxx
   )
 
-itk_module_add_library(VkFFT ${VkFFT_SRCS})
+itk_module_add_library(VkFFTBackend ${VkFFTBackend_SRCS})

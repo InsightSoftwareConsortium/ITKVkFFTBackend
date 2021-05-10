@@ -17,7 +17,7 @@ setup(
     author_email='itk+community@discourse.itk.org',
     packages=['itk'],
     package_dir={'itk': 'itk'},
-    download_url=r'https://github.com/InsightSoftwareConsortium/ITKVkFFT',
+    download_url=r'https://github.com/InsightSoftwareConsortium/ITKVkFFTBackend',
     description=r'VkFFT backends for ITK FFT classes.',
     long_description='ITK is an open-source, cross-platform library that provides developers with an extensive suite of software tools for image analysis. Developed through extreme programming methodologies, ITK employs leading-edge algorithms for registering and segmenting multidimensional scientific images.',
     classifiers=[
