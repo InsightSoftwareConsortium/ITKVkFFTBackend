@@ -14,10 +14,10 @@ else()
 endif()
 
 set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
-# set(vulkan_GIT_REPOSITORY "https://github.com/DTolm/VkFFT") # original source
-# set(vulkan_GIT_TAG        "4608dd00899e3c50cd3cfb3f4b8ef056f09261a9")
-set(vulkan_GIT_REPOSITORY "https://github.com/thewtex/VkFFT") # our copy of original source
-set(vulkan_GIT_TAG        "86d8b45c7465ccec8cc20d4bf1710eef04c92c47") # backend-cmake-cache
+set(vulkan_GIT_REPOSITORY "https://github.com/DTolm/VkFFT") # original source
+set(vulkan_GIT_TAG        "5dc53fb5c28dd57f922bfa454827264a7aac9477")
+# set(vulkan_GIT_REPOSITORY "https://github.com/thewtex/VkFFT") # our copy of original source
+# set(vulkan_GIT_TAG        "86d8b45c7465ccec8cc20d4bf1710eef04c92c47") # backend-cmake-cache
 # set(GIT_REPOSITORY        "https://github.com/VZout/vk_headers_lib.git") # source for something similar
 # set(GIT_TAG               "e166a6948b0b4cd9a2b6a5e924d79f12d8aed99c")
 FetchContent_Declare(
