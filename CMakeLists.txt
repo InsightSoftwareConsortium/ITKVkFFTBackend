@@ -3,13 +3,6 @@ project(VkFFTBackend)
 
 include(FetchContent)
 
-if(NOT OpenCL-ICD-Loader_SOURCE_DIR)
-  find_package(OpenCL-ICD-Loader REQUIRED)
-  list(APPEND CMAKE_MODULE_PATH ${OpenCL-ICD-Loader_CMAKE_DIR})
-else()
-  set(OpenCL-ICD-Loader_DIR ${CMAKE_BINARY_DIR})
-endif()
-
 set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
 set(vulkan_GIT_REPOSITORY "https://github.com/DTolm/VkFFT") # original source
 set(vulkan_GIT_TAG        "5dc53fb5c28dd57f922bfa454827264a7aac9477")

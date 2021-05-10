@@ -49,6 +49,7 @@ jobs:
       uses: lukka/get-cmake@v3.18.3
 
     - name: Download OpenCL-ICD-Loader
+      shell: bash
       run: |
         cd ..
         git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
@@ -77,14 +78,14 @@ jobs:
         cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -DBUILD_TESTING:BOOL=OFF -GNinja ../OpenCL-ICD-Loader
         ninja
 
-    - name: Build OPenCL-ICD-Loader
+    - name: Build OpenCL-ICD-Loader
       if: matrix.os == 'windows-2019'
       run: |
         cd ..
-        mkdir OPenCL-ICD-Loader-build
-        cd OPenCL-ICD-Loader-build
+        mkdir OpenCL-ICD-Loader-build
+        cd OpenCL-ICD-Loader-build
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -DBUILD_TESTING:BOOL=OFF -GNinja ../OPenCL-ICD-Loader
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -DBUILD_TESTING:BOOL=OFF -GNinja ../OpenCL-ICD-Loader
         ninja
       shell: cmd
 
