@@ -17,7 +17,7 @@ FetchContent_Declare(
   GIT_TAG ${vulkan_GIT_TAG}
   )
 FetchContent_MakeAvailable(vulkan_lib)
-set(VkFFTBackend_LIBRARIES VkFFT)
+set(VkFFTBackend_LIBRARIES VkFFTBackend)
 
 if(NOT ITK_SOURCE_DIR)
   find_package(ITK REQUIRED)
