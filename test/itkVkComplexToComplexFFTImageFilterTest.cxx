@@ -16,7 +16,7 @@
  *
  *=========================================================================*/
 
-#include "itkVkComplexToComplexImageFilter.h"
+#include "itkVkComplexToComplexFFTImageFilter.h"
 
 #include "itkCommand.h"
 #include "itkImageFileWriter.h"
@@ -52,7 +52,7 @@ public:
 };
 } // namespace
 
-int itkVkComplexToComplexImageFilterTest(int argc, char * argv[])
+int itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
 {
   if (argc < 2)
   {
@@ -68,10 +68,10 @@ int itkVkComplexToComplexImageFilterTest(int argc, char * argv[])
   using PixelType = float;
   using ImageType = itk::Image<PixelType, Dimension>;
 
-  using FilterType = itk::VkComplexToComplexImageFilter<ImageType, ImageType>;
+  using FilterType = itk::VkComplexToComplexFFTImageFilter<ImageType>;
   FilterType::Pointer filter = FilterType::New();
 
-  ITK_EXERCISE_BASIC_OBJECT_METHODS(filter, VkComplexToComplexImageFilter, ImageToImageFilter);
+  ITK_EXERCISE_BASIC_OBJECT_METHODS(filter, VkComplexToComplexFFTImageFilter, ImageToImageFilter);
 
   // Create input image to avoid test dependencies.
   ImageType::SizeType size;

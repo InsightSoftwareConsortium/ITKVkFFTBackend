@@ -15,10 +15,10 @@
  *  limitations under the License.
  *
  *=========================================================================*/
-#ifndef itkVkComplexToComplexImageFilter_hxx
-#define itkVkComplexToComplexImageFilter_hxx
+#ifndef itkVkComplexToComplexFFTImageFilter_hxx
+#define itkVkComplexToComplexFFTImageFilter_hxx
 
-#include "itkVkComplexToComplexImageFilter.h"
+#include "itkVkComplexToComplexFFTImageFilter.h"
 
 #include "itkImageRegionIterator.h"
 #include "itkImageRegionConstIterator.h"
@@ -26,29 +26,28 @@
 namespace itk
 {
 
-template <typename TInputImage, typename TOutputImage>
-VkComplexToComplexImageFilter<TInputImage, TOutputImage>
-::VkComplexToComplexImageFilter()
+template <typename TImage>
+VkComplexToComplexFFTImageFilter<TImage>
+::VkComplexToComplexFFTImageFilter()
 {}
 
 
-template <typename TInputImage, typename TOutputImage>
+template <typename TImage>
 void
-VkComplexToComplexImageFilter<TInputImage, TOutputImage>
+VkComplexToComplexFFTImageFilter<TImage>
 ::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
 }
 
 
-template <typename TInputImage, typename TOutputImage>
+template <typename TImage>
 void
-VkComplexToComplexImageFilter<TInputImage, TOutputImage>
+VkComplexToComplexFFTImageFilter<TImage>
 ::DynamicThreadedGenerateData(const OutputRegionType & outputRegion)
 {
   OutputImageType *      output = this->GetOutput();
   const InputImageType * input = this->GetInput();
-  using InputRegionType = typename InputImageType::RegionType;
   InputRegionType inputRegion = InputRegionType(outputRegion.GetSize());
 
   itk::ImageRegionConstIterator<InputImageType> in(input, inputRegion);
@@ -62,4 +61,4 @@ VkComplexToComplexImageFilter<TInputImage, TOutputImage>
 
 } // end namespace itk
 
-#endif // itkVkComplexToComplexImageFilter_hxx
+#endif // itkVkComplexToComplexFFTImageFilter_hxx

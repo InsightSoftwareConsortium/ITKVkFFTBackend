@@ -1,21 +1,21 @@
 itk_module_test()
 
-set(VkFFTTests
+set(VkFFTBackendTests
   itkMinimalStandardRandomVariateGeneratorTest.cxx
-  itkVkComplexToComplexImageFilterTest.cxx
+  itkVkComplexToComplexFFTImageFilterTest.cxx
   )
 
-CreateTestDriver(VkFFT "${VkFFT-Test_LIBRARIES}" "${VkFFTTests}")
+CreateTestDriver(VkFFTBackend "${VkFFTBackend-Test_LIBRARIES}" "${VkFFTBackendTests}")
 
 itk_add_test(NAME itkMinimalStandardRandomVariateGeneratorTest
-  COMMAND VkFFTTestDriver itkMinimalStandardRandomVariateGeneratorTest
+  COMMAND VkFFTBackendTestDriver itkMinimalStandardRandomVariateGeneratorTest
   )
 
-itk_add_test(NAME itkVkComplexToComplexImageFilterTest
-  COMMAND VkFFTTestDriver
+itk_add_test(NAME itkVkComplexToComplexFFTImageFilterTest
+  COMMAND VkFFTBackendTestDriver
     --compare
-    DATA{Baseline/itkVkComplexToComplexImageFilterTestOutput.mha}
-    ${ITK_TEST_OUTPUT_DIR}/itkVkComplexToComplexImageFilterTestOutput.mha
-  itkVkComplexToComplexImageFilterTest
-    ${ITK_TEST_OUTPUT_DIR}/itkVkComplexToComplexImageFilterTestOutput.mha
+    DATA{Baseline/itkVkComplexToComplexFFTImageFilterTestOutput.mha}
+    ${ITK_TEST_OUTPUT_DIR}/itkVkComplexToComplexFFTImageFilterTestOutput.mha
+  itkVkComplexToComplexFFTImageFilterTest
+    ${ITK_TEST_OUTPUT_DIR}/itkVkComplexToComplexFFTImageFilterTestOutput.mha
   )

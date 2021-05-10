@@ -21,7 +21,7 @@
 #include "itkIntTypes.h"
 #include "itkObjectFactory.h"
 #include "itkRandomVariateGeneratorBase.h"
-#include "VkFFTExport.h"
+#include "VkFFTBackendExport.h"
 #include "itkNormalVariateGenerator.h"
 
 namespace itk
@@ -48,9 +48,9 @@ namespace Statistics
  * 2147483647\f$, the Minimial Standard configuration recommended by Park,
  * Miller and Stockmeyer in 1993.
  *
- * \ingroup VkFFT
+ * \ingroup VkFFTBackend
  */
-class VkFFT_EXPORT MinimalStandardRandomVariateGenerator : public RandomVariateGeneratorBase
+class VkFFTBackend_EXPORT MinimalStandardRandomVariateGenerator : public RandomVariateGeneratorBase
 {
 public:
   ITK_DISALLOW_COPY_AND_MOVE(MinimalStandardRandomVariateGenerator);
