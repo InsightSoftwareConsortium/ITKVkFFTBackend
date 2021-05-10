@@ -1,10 +1,7 @@
 cmake_minimum_required(VERSION 3.10.2)
 project(VkFFTBackend)
+
 include(FetchContent)
-set(_itk_build_testing ${BUILD_TESTING})
-#set(BUILD_TESTING OFF)
-set(_itk_build_shared ${BUILD_SHARED_LIBS})
-set(BUILD_SHARED_LIBS OFF)
 
 if(NOT OpenCL-ICD-Loader_SOURCE_DIR)
   find_package(OpenCL-ICD-Loader REQUIRED)
@@ -28,9 +25,6 @@ FetchContent_Declare(
   )
 FetchContent_MakeAvailable(vulkan_lib)
 set(VkFFTBackend_LIBRARIES VkFFT)
-
-set(BUILD_TESTING ${_itk_build_testing})
-set(BUILD_SHARED_LIBS ${_itk_build_shared})
 
 if(NOT ITK_SOURCE_DIR)
   find_package(ITK REQUIRED)
