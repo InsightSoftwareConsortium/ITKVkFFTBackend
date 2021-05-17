@@ -15,6 +15,8 @@ jobs:
             cxx-compiler: "g++"
             opencl-icd-loader-git-tag: "v2021.04.29"
             opencl-headers-git-tag: "v2021.04.29"
+            opencl-version: 120
+            vkfft-backend: 3
             itk-git-tag: "v5.2.0"
             cmake-build-type: "MinSizeRel"
           - os: windows-2019
@@ -22,6 +24,8 @@ jobs:
             cxx-compiler: "cl.exe"
             opencl-icd-loader-git-tag: "v2021.04.29"
             opencl-headers-git-tag: "v2021.04.29"
+            opencl-version: 120
+            vkfft-backend: 3
             itk-git-tag: "v5.2.0"
             cmake-build-type: "Release"
           - os: macos-10.15
@@ -29,6 +33,8 @@ jobs:
             cxx-compiler: "clang++"
             opencl-icd-loader-git-tag: "v2021.04.29"
             opencl-headers-git-tag: "v2021.04.29"
+            opencl-version: 120
+            vkfft-backend: 3
             itk-git-tag: "v5.2.0"
             cmake-build-type: "MinSizeRel"
 
@@ -53,14 +59,16 @@ jobs:
       run: |
         cd ..
         git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
-        cd OpenCL-ICD-Loader
+        pushd OpenCL-ICD-Loader
         git checkout ${{ matrix.opencl-icd-loader-git-tag }}
-        cd inc
+        popd
+        pushd OpenCL-ICD-Loader/inc
         git clone https://github.com/KhronosGroup/OpenCL-Headers
-        cd OpenCL-Headers
+        pushd OpenCL-Headers
         git checkout ${{ matrix.opencl-headers-git-tag }}
-        cd ..
+        popd
         cp -r OpenCL-Headers/CL ./
+        popd
 
     - name: Download ITK
       run: |
@@ -143,18 +151,24 @@ jobs:
         set(dashboard_no_clean 1)
         set(ENV{CC} ${{ matrix.c-compiler }})
         set(ENV{CXX} ${{ matrix.cxx-compiler }})
-        set(ENV{OCL_ROOT} "$ENV{GITHUB_WORKSPACE}/OpenCL-ICD-Loader-build/")
         if(WIN32)
           set(ENV{PATH} "\${CTEST_DASHBOARD_ROOT}/ITK-build/bin;\$ENV{PATH}")
         endif()
+        file(TO_CMAKE_PATH "\${CTEST_DASHBOARD_ROOT}/OpenCL-ICD-Loader/inc" OpenCL_INCLUDE_DIR)
+        find_library(OpenCL_LIBRARY OpenCL PATHS \${CTEST_DASHBOARD_ROOT}/OpenCL-ICD-Loader-build REQUIRED)
+        set(VKFFT_BACKEND ${{ matrix.vkfft-backend }} CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
         set(dashboard_cache "
-        OpenCL_INCLUDE_DIR:PATH=\$ENV{GITHUB_WORKSPACE}/OpenCL-ICD-Loader/inc
+        VKFFT_BACKEND=\${VKFFT_BACKEND}
+        CL_TARGET_OPENCL_VERSION=${{ matrix.opencl-version }}
+        OpenCL_INCLUDE_DIR:PATH=\${OpenCL_INCLUDE_DIR}
+        OpenCL_LIBRARY:FILEPATH=\${OpenCL_LIBRARY}
         ITK_DIR:PATH=\${CTEST_DASHBOARD_ROOT}/ITK-build
         BUILD_TESTING:BOOL=ON
         ")
         string(TIMESTAMP build_date "%Y-%m-%d")
         message("CDash Build Identifier: \${build_date} \${CTEST_BUILD_NAME}")
         message("CTEST_SITE = \${CTEST_SITE}")
+        message("dashboard_cache = \${dashboard_cache}")
         include(\${CTEST_SCRIPT_DIRECTORY}/itk_common.cmake)
         EOF
         cat dashboard.cmake
@@ -172,6 +186,8 @@ jobs:
       shell: cmd
 
   build-linux-python-packages:
+    needs:
+      - build-test-cxx
     runs-on: ubuntu-20.04
     strategy:
       max-parallel: 2
@@ -209,6 +225,8 @@ jobs:
         path: dist
 
   build-macos-python-packages:
+    needs:
+      - build-test-cxx
     runs-on: macos-10.15
     strategy:
       max-parallel: 2
@@ -244,6 +262,8 @@ jobs:
         path: dist
 
   build-windows-python-packages:
+    needs:
+      - build-test-cxx
     runs-on: windows-2019
     strategy:
       max-parallel: 2

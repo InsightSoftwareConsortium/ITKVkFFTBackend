@@ -18,25 +18,22 @@
 #ifndef itkVkComplexToComplexFFTImageFilter_h
 #define itkVkComplexToComplexFFTImageFilter_h
 
-#include "itkImageToImageFilter.h"
 #include "itkComplexToComplexFFTImageFilter.h"
-
 
 namespace itk
 {
 
 /** \class VkComplexToComplexFFTImageFilter
  *
- *  \brief Implements an API to enable the Fourier transform or the inverse
- *  Fourier transform of images with complex valued voxels to be computed using
- *  Vulkan FFT from https://github.com/DTolm/VkFFT.
+ * \brief Implements an API to enable the Fourier transform or the inverse Fourier transform of images with complex
+ * valued voxels to be computed using Vulkan FFT from https://github.com/DTolm/VkFFT.
  *
- * This filter is multithreaded and supports input images with sizes that are not
- * a power of two.
+ * This filter is multithreaded and supports input images with sizes that are not a power of two.
  *
  * \ingroup FourierTransform
  * \ingroup MultiThreaded
  * \ingroup ITKFFT
+ * \ingroup VkFFTBackend
  *
  */
 template <typename TImage>
@@ -54,31 +51,42 @@ public:
   using ConstPointer = SmartPointer<const Self>;
 
   using ImageType = TImage;
-  using PixelType = typename ImageType::PixelType;
   using InputImageType = typename Superclass::InputImageType;
   using InputRegionType = typename InputImageType::RegionType;
+  using InputPixelType = typename InputImageType::PixelType;
   using OutputImageType = typename Superclass::OutputImageType;
   using OutputRegionType = typename OutputImageType::RegionType;
+  using OutputPixelType = typename OutputImageType::PixelType;
+  using OutputSizeType = typename OutputImageType::SizeType;
 
   /** Run-time type information. */
   itkTypeMacro(VkComplexToComplexFFTImageFilter, ComplexToComplexFFTImageFilter);
 
-  /** Standard New macro. */
+  /** Method for creation through the object factory. */
   itkNewMacro(Self);
 
 protected:
   VkComplexToComplexFFTImageFilter();
   ~VkComplexToComplexFFTImageFilter() override = default;
 
-  void PrintSelf(std::ostream & os, Indent indent) const override;
+  void
+  UpdateOutputData(DataObject * output) override;
 
-  void DynamicThreadedGenerateData(const OutputRegionType & outputRegion) override;
+  void
+  BeforeThreadedGenerateData() override;
+
+  void
+  DynamicThreadedGenerateData(const OutputRegionType & outputRegionForThread) override;
+
+  void
+  PrintSelf(std::ostream & os, Indent indent) const override;
 
 private:
 #ifdef ITK_USE_CONCEPT_CHECKING
   // Add concept checking such as
   // itkConceptMacro( FloatingPointPixel, ( itk::Concept::IsFloatingPoint< typename ImageType::PixelType > ) );
 #endif
+  bool m_CanUseDestructiveAlgorithm = false;
 };
 } // namespace itk
 

@@ -1,5 +1,9 @@
 itk_module_test()
 
+if(DEFINED OpenCL_INCLUDE_DIR)
+  include_directories(SYSTEM ${OpenCL_INCLUDE_DIR})
+endif()
+
 set(VkFFTBackendTests
   itkMinimalStandardRandomVariateGeneratorTest.cxx
   itkVkComplexToComplexFFTImageFilterTest.cxx
