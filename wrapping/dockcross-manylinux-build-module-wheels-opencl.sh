@@ -17,12 +17,12 @@ script_dir=$(cd $(dirname $0) || exit 1; pwd)
 if ! test -d ./OpenCL-ICD-Loader; then
   git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
   pushd OpenCL-ICD-Loader
-  git checkout 978b4b3a29a3aebc86ce9315d5c5963e88722d03
+  git checkout v2021.04.29
   popd
   pushd OpenCL-ICD-Loader/inc
   git clone https://github.com/KhronosGroup/OpenCL-Headers
   pushd OpenCL-Headers
-  git checkout c5a4bbeabb10d8ed3d1c651b93aa31737bc473dd
+  git checkout v2021.04.29
   popd
   cp -r OpenCL-Headers/CL ./
   popd

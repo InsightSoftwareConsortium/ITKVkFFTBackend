@@ -52,7 +52,8 @@ public:
 };
 } // namespace
 
-int itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
+int
+itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
 {
   if (argc < 2)
   {
@@ -71,7 +72,7 @@ int itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
   using FilterType = itk::VkComplexToComplexFFTImageFilter<ImageType>;
   FilterType::Pointer filter = FilterType::New();
 
-  ITK_EXERCISE_BASIC_OBJECT_METHODS(filter, VkComplexToComplexFFTImageFilter, ImageToImageFilter);
+  ITK_EXERCISE_BASIC_OBJECT_METHODS(filter, VkComplexToComplexFFTImageFilter, ComplexToComplexFFTImageFilter);
 
   // Create input image to avoid test dependencies.
   ImageType::SizeType size;

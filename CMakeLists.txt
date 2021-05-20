@@ -1,23 +1,47 @@
 cmake_minimum_required(VERSION 3.10.2)
-project(VkFFTBackend)
-
 include(FetchContent)
 
+project(VkFFTBackend)
+set(VkFFTBackend_LIBRARIES VkFFTBackend)
+
+if(DEFINED OpenCL_INCLUDE_DIR)
+  include_directories(SYSTEM ${OpenCL_INCLUDE_DIR})
+endif()
 set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
+add_definitions(-DVKFFT_BACKEND=${VKFFT_BACKEND} -DCL_TARGET_OPENCL_VERSION=120)
+
 set(vulkan_GIT_REPOSITORY "https://github.com/DTolm/VkFFT") # original source
-set(vulkan_GIT_TAG        "5dc53fb5c28dd57f922bfa454827264a7aac9477")
-# set(vulkan_GIT_REPOSITORY "https://github.com/thewtex/VkFFT") # our copy of original source
-# set(vulkan_GIT_TAG        "86d8b45c7465ccec8cc20d4bf1710eef04c92c47") # backend-cmake-cache
-# set(GIT_REPOSITORY        "https://github.com/VZout/vk_headers_lib.git") # source for something similar
-# set(GIT_TAG               "e166a6948b0b4cd9a2b6a5e924d79f12d8aed99c")
+set(vulkan_GIT_TAG        "6947846a53b8bfae390bb1ef03f84b2723b0a5b7")
+# set(vulkan_GIT_REPOSITORY "https://github.com/Leengit/VkFFT") # Kitware copy of original source
+# set(vulkan_GIT_TAG        "0c5ddfffe1af9ac96c21d4c38941f9b5481b73c3")
 FetchContent_Declare(
   vulkan_lib
-  # URL /home/lee.newberg/git/VkFFT # Remove me!!!
   GIT_REPOSITORY ${vulkan_GIT_REPOSITORY}
   GIT_TAG ${vulkan_GIT_TAG}
   )
 FetchContent_MakeAvailable(vulkan_lib)
-set(VkFFTBackend_LIBRARIES VkFFTBackend)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # Remove this list of disabled warnings when VkFFT has been updated
+  message("Adding compile options: -Wno-format-overflow")
+  add_compile_options(-Wno-format-overflow)
+  target_compile_options(VkFFT INTERFACE -Wno-format-overflow)
+endif()
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  # Remove this list of disabled warnings when VkFFT has been updated
+  message("Adding compile options: /wd4146 /wd4244 /wd4996")
+  add_compile_options(/wd4146 /wd4244 /wd4996)
+  target_compile_options(VkFFT INTERFACE /wd4146 /wd4244 /wd4996)
+  # set(MSVC_DISABLED_WARNINGS_LIST
+  #   "C4146" # unary minus operator applied to unsigned type, result still unsigned
+  #   "C4244" # 'argument': conversion from 'double' to 'uint64_t', possible loss of data
+  #   "C4996" # 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead.
+  #   )
+  # string(REPLACE "C" " -wd" MSVC_DISABLED_WARNINGS_STR ${MSVC_DISABLED_WARNINGS_LIST})
+  # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MSVC_DISABLED_WARNINGS_STR}")
+  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_DISABLED_WARNINGS_STR}")
+endif()
+
+include_directories(SYSTEM ${vulkan_lib_SOURCE_DIR}/vkFFT)
 
 if(NOT ITK_SOURCE_DIR)
   find_package(ITK REQUIRED)
