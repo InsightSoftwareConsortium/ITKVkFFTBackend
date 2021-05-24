@@ -1,15 +1,17 @@
 itk_module_test()
 
-if(DEFINED OpenCL_INCLUDE_DIR)
-  include_directories(SYSTEM ${OpenCL_INCLUDE_DIR})
-endif()
-
 set(VkFFTBackendTests
   itkMinimalStandardRandomVariateGeneratorTest.cxx
   itkVkComplexToComplexFFTImageFilterTest.cxx
   )
 
-CreateTestDriver(VkFFTBackend "${VkFFTBackend-Test_LIBRARIES}" "${VkFFTBackendTests}")
+include_directories(${VkFFTBackend_INCLUDE_DIRS})
+
+CreateTestDriver(VkFFTBackend
+  "${VkFFTBackend-Test_LIBRARIES};${OpenCL_LIBS}"
+  "${VkFFTBackendTests}"
+  # itkOpenCLTestHelper.cxx
+  )
 
 itk_add_test(NAME itkMinimalStandardRandomVariateGeneratorTest
   COMMAND VkFFTBackendTestDriver itkMinimalStandardRandomVariateGeneratorTest
