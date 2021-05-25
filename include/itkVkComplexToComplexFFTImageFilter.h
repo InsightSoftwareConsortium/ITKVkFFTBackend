@@ -15,6 +15,7 @@
  *  limitations under the License.
  *
  *=========================================================================*/
+
 #ifndef itkVkComplexToComplexFFTImageFilter_h
 #define itkVkComplexToComplexFFTImageFilter_h
 
@@ -23,47 +24,53 @@
 namespace itk
 {
 
-/** \class VkComplexToComplexFFTImageFilter
+/**
+ *\class VkComplexToComplexFFTImageFilter
  *
- * \brief Implements an API to enable the Fourier transform or the inverse Fourier transform of images with complex
- * valued voxels to be computed using Vulkan FFT from https://github.com/DTolm/VkFFT.
+ *  \brief Implements an API to enable the Fourier transform or the inverse
+ *  Fourier transform of images with complex valued voxels to be computed using
+ *  the VkFFT library.
  *
- * This filter is multithreaded and supports input images with sizes that are not a power of two.
+ * This filter is multithreaded and supports input images with sizes which are
+ * divisible by primes up to 13.
  *
  * \ingroup FourierTransform
  * \ingroup MultiThreaded
  * \ingroup ITKFFT
  * \ingroup VkFFTBackend
- *
  */
 template <typename TImage>
-class ITK_TEMPLATE_EXPORT VkComplexToComplexFFTImageFilter : public ComplexToComplexFFTImageFilter<TImage>
+class VkComplexToComplexFFTImageFilter : public ComplexToComplexFFTImageFilter<TImage>
 {
 public:
   ITK_DISALLOW_COPY_AND_MOVE(VkComplexToComplexFFTImageFilter);
 
-  static constexpr unsigned int ImageDimension = TImage::ImageDimension;
-
   /** Standard class type aliases. */
-  using Self = VkComplexToComplexFFTImageFilter<TImage>;
+  using Self = VkComplexToComplexFFTImageFilter;
   using Superclass = ComplexToComplexFFTImageFilter<TImage>;
   using Pointer = SmartPointer<Self>;
   using ConstPointer = SmartPointer<const Self>;
 
   using ImageType = TImage;
+  using PixelType = typename ImageType::PixelType;
+  using ComplexType = PixelType;
+  using ValueType = typename ComplexType::value_type;
+  using ComplexAsArrayType = ValueType[2];
   using InputImageType = typename Superclass::InputImageType;
-  using InputRegionType = typename InputImageType::RegionType;
-  using InputPixelType = typename InputImageType::PixelType;
   using OutputImageType = typename Superclass::OutputImageType;
-  using OutputRegionType = typename OutputImageType::RegionType;
-  using OutputPixelType = typename OutputImageType::PixelType;
-  using OutputSizeType = typename OutputImageType::SizeType;
-
-  /** Run-time type information. */
-  itkTypeMacro(VkComplexToComplexFFTImageFilter, ComplexToComplexFFTImageFilter);
+  using OutputImageRegionType = typename OutputImageType::RegionType;
+  using ImageSizeType = typename ImageType::SizeType;
 
   /** Method for creation through the object factory. */
   itkNewMacro(Self);
+
+  /** Run-time type information (and related methods). */
+  itkTypeMacro(VkComplexToComplexFFTImageFilter, ComplexToComplexFFTImageFilter);
+
+  static constexpr unsigned int ImageDimension = ImageType::ImageDimension;
+
+  itkGetMacro(DeviceID, uint64_t);
+  itkSetMacro(DeviceID, uint64_t);
 
 protected:
   VkComplexToComplexFFTImageFilter();
@@ -76,17 +83,13 @@ protected:
   BeforeThreadedGenerateData() override;
 
   void
-  DynamicThreadedGenerateData(const OutputRegionType & outputRegionForThread) override;
+  DynamicThreadedGenerateData(const OutputImageRegionType & outputRegionForThread) override;
 
   void
   PrintSelf(std::ostream & os, Indent indent) const override;
 
 private:
-#ifdef ITK_USE_CONCEPT_CHECKING
-  // Add concept checking such as
-  // itkConceptMacro( FloatingPointPixel, ( itk::Concept::IsFloatingPoint< typename ImageType::PixelType > ) );
-#endif
-  bool m_CanUseDestructiveAlgorithm = false;
+  uint64_t m_DeviceID{ 0UL };
 };
 } // namespace itk
 
@@ -94,4 +97,4 @@ private:
 #  include "itkVkComplexToComplexFFTImageFilter.hxx"
 #endif
 
-#endif // itkVkComplexToComplexFFTImageFilter
+#endif // itkVkComplexToComplexFFTImageFilter_h

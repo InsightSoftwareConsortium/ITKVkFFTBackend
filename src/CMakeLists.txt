@@ -1,4 +1,5 @@
 set(VkFFTBackend_SRCS
+  itkVkCommon.cxx
   itkMinimalStandardRandomVariateGenerator.cxx
   )
 

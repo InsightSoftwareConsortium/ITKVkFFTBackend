@@ -66,7 +66,7 @@ itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
   const char * outputImageFileName = argv[1];
 
   constexpr unsigned int Dimension = 2;
-  using PixelType = float;
+  using PixelType = std::complex<double>;
   using ImageType = itk::Image<PixelType, Dimension>;
 
   using FilterType = itk::VkComplexToComplexFFTImageFilter<ImageType>;
