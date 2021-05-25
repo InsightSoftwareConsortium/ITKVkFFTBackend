@@ -1,15 +1,29 @@
 cmake_minimum_required(VERSION 3.10.2)
-include(FetchContent)
-
 project(VkFFTBackend)
 set(VkFFTBackend_LIBRARIES VkFFTBackend)
 
-if(DEFINED OpenCL_INCLUDE_DIR)
-  include_directories(SYSTEM ${OpenCL_INCLUDE_DIR})
+if(NOT ITK_SOURCE_DIR)
+  include(itk-module-init.cmake)
 endif()
+
+## When this module is loaded by an app, load OpenCL too.
+set(VkFFTBackend_EXPORT_CODE_INSTALL "
+set(OpenCL_DIR \"${OpenCL_DIR}\")
+find_package(OpenCL REQUIRED)
+")
+set(VkFFTBackend_EXPORT_CODE_BUILD "
+if(NOT ITK_BINARY_DIR)
+  set(OpenCL_DIR \"${OpenCL_DIR}\")
+  find_package(OpenCL REQUIRED)
+endif()
+")
+set(VkFFTBackend_SYSTEM_INCLUDE_DIRS ${OpenCL_INCLUDE_DIRS})
+set(VkFFTBackend_SYSTEM_LIBRARY_DIRS ${OpenCL_LIB_DIR})
+
+## VkFFT dependency
+include(FetchContent)
 set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
 add_definitions(-DVKFFT_BACKEND=${VKFFT_BACKEND} -DCL_TARGET_OPENCL_VERSION=120)
-
 set(vulkan_GIT_REPOSITORY "https://github.com/DTolm/VkFFT") # original source
 set(vulkan_GIT_TAG        "6947846a53b8bfae390bb1ef03f84b2723b0a5b7")
 # set(vulkan_GIT_REPOSITORY "https://github.com/Leengit/VkFFT") # Kitware copy of original source
@@ -29,16 +43,11 @@ endif()
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # Remove this list of disabled warnings when VkFFT has been updated
   message("Adding compile options: /wd4146 /wd4244 /wd4996")
+  #   C4146: unary minus operator applied to unsigned type, result still unsigned
+  #   C4244: 'argument': conversion from 'double' to 'uint64_t', possible loss of data
+  #   C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead.
   add_compile_options(/wd4146 /wd4244 /wd4996)
   target_compile_options(VkFFT INTERFACE /wd4146 /wd4244 /wd4996)
-  # set(MSVC_DISABLED_WARNINGS_LIST
-  #   "C4146" # unary minus operator applied to unsigned type, result still unsigned
-  #   "C4244" # 'argument': conversion from 'double' to 'uint64_t', possible loss of data
-  #   "C4996" # 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead.
-  #   )
-  # string(REPLACE "C" " -wd" MSVC_DISABLED_WARNINGS_STR ${MSVC_DISABLED_WARNINGS_LIST})
-  # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MSVC_DISABLED_WARNINGS_STR}")
-  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_DISABLED_WARNINGS_STR}")
 endif()
 
 include_directories(SYSTEM ${vulkan_lib_SOURCE_DIR}/vkFFT)
