@@ -1,0 +1,4 @@
+itk_wrap_class("itk::VkInverseFFTImageFilter" POINTER)
+  itk_wrap_image_filter(CF 1 1;2;3)
+  itk_wrap_image_filter(CD 1 1;2;3)
+itk_end_wrap_class()

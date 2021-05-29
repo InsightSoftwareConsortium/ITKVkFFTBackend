@@ -58,7 +58,8 @@ public:
   using OutputPixelType = typename OutputImageType::PixelType;
   using ComplexType = InputPixelType;
   using RealType = typename ComplexType::value_type;
-  static_assert(std::is_same<RealType, float>::value || std::is_same<RealType, double>::value, "Unsupported pixel type");
+  static_assert(std::is_same<RealType, float>::value || std::is_same<RealType, double>::value,
+                "Unsupported pixel type");
   using SizeType = typename InputImageType::SizeType;
   using SizeValueType = typename InputImageType::SizeValueType;
   using OutputImageRegionType = typename OutputImageType::RegionType;
