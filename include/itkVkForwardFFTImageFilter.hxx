@@ -15,30 +15,30 @@
  *  limitations under the License.
  *
  *=========================================================================*/
+#ifndef itkVkForwardFFTImageFilter_hxx
+#define itkVkForwardFFTImageFilter_hxx
 
-#ifndef itkVkComplexToComplexFFTImageFilter_hxx
-#define itkVkComplexToComplexFFTImageFilter_hxx
-
-#include "itkVkCommon.h"
-#include "itkVkComplexToComplexFFTImageFilter.h"
-#include "vkFFT.h"
-#include "itkImageRegionIterator.h"
+#include "itkHalfToFullHermitianImageFilter.h"
+#include "itkVkForwardFFTImageFilter.h"
 #include "itkIndent.h"
 #include "itkMetaDataObject.h"
 #include "itkProgressReporter.h"
+#include "itkMultiThreaderBase.h"
+
+#include <iostream>
 
 namespace itk
 {
 
-template <typename TImage>
-VkComplexToComplexFFTImageFilter<TImage>::VkComplexToComplexFFTImageFilter()
+template <typename TInputImage>
+VkForwardFFTImageFilter<TInputImage>::VkForwardFFTImageFilter()
 {
   this->DynamicMultiThreadingOn();
 }
 
-template <typename TImage>
+template <typename TInputImage>
 void
-VkComplexToComplexFFTImageFilter<TImage>::GenerateData()
+VkForwardFFTImageFilter<TInputImage>::GenerateData()
 {
   // get pointers to the input and output
   const InputImageType * const input{ this->GetInput() };
@@ -65,7 +65,6 @@ VkComplexToComplexFFTImageFilter<TImage>::GenerateData()
   itkAssertOrThrowMacro(outputCPUBuffer != nullptr, "No CPU output buffer");
   const SizeValueType inBytes{ input->GetLargestPossibleRegion().GetNumberOfPixels() * sizeof(InputPixelType) };
   const SizeValueType outBytes{ output->GetLargestPossibleRegion().GetNumberOfPixels() * sizeof(OutputPixelType) };
-  itkAssertOrThrowMacro(inBytes == outBytes, "CPU input and output buffers are of different sizes.");
 
   // Mostly use defaults for VkCommon::VkGPU
   typename VkCommon::VkGPU vkGPU;
@@ -85,11 +84,10 @@ VkComplexToComplexFFTImageFilter<TImage>::GenerateData()
     vkParameters.P = VkCommon::DOUBLE;
   else
     itkAssertOrThrowMacro(false, "Unsupported type for real numbers.");
-  vkParameters.fftType = VkCommon::C2C;
+  vkParameters.fftType = VkCommon::R2FH;
   vkParameters.PSize = sizeof(RealType);
-  vkParameters.I = this->GetTransformDirection() == Superclass::TransformDirectionEnum::INVERSE ? VkCommon::INVERSE
-                                                                                                : VkCommon::FORWARD;
-  vkParameters.normalized = vkParameters.I == VkCommon::INVERSE ? VkCommon::NORMALIZED : VkCommon::UNNORMALIZED;
+  vkParameters.I = VkCommon::FORWARD;
+  vkParameters.normalized = VkCommon::UNNORMALIZED;
 
   vkParameters.inputCPUBuffer = inputCPUBuffer;
   vkParameters.inputBufferBytes = inBytes;
@@ -105,21 +103,21 @@ VkComplexToComplexFFTImageFilter<TImage>::GenerateData()
   }
 }
 
-template <typename TImage>
+template <typename TInputImage>
 void
-VkComplexToComplexFFTImageFilter<TImage>::PrintSelf(std::ostream & os, Indent indent) const
+VkForwardFFTImageFilter<TInputImage>::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
   os << indent << "DeviceID: " << m_DeviceID << std::endl;
 }
 
-template <typename TImage>
-typename VkComplexToComplexFFTImageFilter<TImage>::SizeValueType
-VkComplexToComplexFFTImageFilter<TImage>::GetSizeGreatestPrimeFactor() const
+template <typename TInputImage>
+typename VkForwardFFTImageFilter<TInputImage>::SizeValueType
+VkForwardFFTImageFilter<TInputImage>::GetSizeGreatestPrimeFactor() const
 {
   return VkCommon::GreatestPrimeFactor;
 }
 
 } // end namespace itk
 
-#endif // _itkVkComplexToComplexFFTImageFilter_hxx
+#endif // _itkVkForwardFFTImageFilter_hxx
