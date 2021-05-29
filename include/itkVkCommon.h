@@ -42,9 +42,9 @@ public:
 
   enum FFTType
   {
-    C2C = 0,  // Complex to Complex
-    R2HH = 1, // Real to Half Hermetian
-    R2FH = 2  // Real to Full Hermetian (aka Complex)
+    C2C = 0,     // Complex to Complex
+    R2HalfH = 1, // Real to Half Hermetian
+    R2FullH = 2  // Real to Full Hermetian (aka Complex)
   };
 
   enum DirectionType
@@ -78,7 +78,7 @@ public:
     const uint64_t    N = 1;         // Number of redundant iterations, for benchmarking -- always 1.
     FFTType           fftType = C2C; // ComplexToComplex, RealToHalfHermetian, RealToFullHermetian
     uint64_t          PSize = 4;     // sizeof(float), sizeof(double), or sizeof(half) according to VkParameters.P.
-    DirectionType     I = FORWARD;   // forward or inverse transformation. (R2HH inverse is aka HH2R, etc.)
+    DirectionType     I = FORWARD;   // forward or inverse transformation. (R2HalfH inverse is aka HalfH2R, etc.)
     NormalizationType normalized = UNNORMALIZED; // Whether inverse transformation should be divided by array size
     const void *      inputCPUBuffer = 0;        // input buffer in CPU memory
     uint64_t          inputBufferBytes = 0;      // number of bytes in inputCPUBuffer

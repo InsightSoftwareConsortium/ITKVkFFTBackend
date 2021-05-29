@@ -15,11 +15,11 @@
  *  limitations under the License.
  *
  *=========================================================================*/
-#ifndef itkVkInverseFFTImageFilter_hxx
-#define itkVkInverseFFTImageFilter_hxx
+#ifndef itkVkHalfHermitianToRealInverseFFTImageFilter_hxx
+#define itkVkHalfHermitianToRealInverseFFTImageFilter_hxx
 
 #include "itkHalfToFullHermitianImageFilter.h"
-#include "itkVkInverseFFTImageFilter.h"
+#include "itkVkHalfHermitianToRealInverseFFTImageFilter.h"
 #include "itkIndent.h"
 #include "itkMetaDataObject.h"
 #include "itkProgressReporter.h"
@@ -31,14 +31,14 @@ namespace itk
 {
 
 template <typename TInputImage>
-VkInverseFFTImageFilter<TInputImage>::VkInverseFFTImageFilter()
+VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::VkHalfHermitianToRealInverseFFTImageFilter()
 {
   this->DynamicMultiThreadingOn();
 }
 
 template <typename TInputImage>
 void
-VkInverseFFTImageFilter<TInputImage>::GenerateData()
+VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::GenerateData()
 {
   // get pointers to the input and output
   const InputImageType * const input{ this->GetInput() };
@@ -84,7 +84,7 @@ VkInverseFFTImageFilter<TInputImage>::GenerateData()
     vkParameters.P = VkCommon::DOUBLE;
   else
     itkAssertOrThrowMacro(false, "Unsupported type for real numbers.");
-  vkParameters.fftType = VkCommon::R2FullH;
+  vkParameters.fftType = VkCommon::R2HalfH;
   vkParameters.PSize = sizeof(RealType);
   vkParameters.I = VkCommon::INVERSE;
   vkParameters.normalized = VkCommon::NORMALIZED;
@@ -105,19 +105,19 @@ VkInverseFFTImageFilter<TInputImage>::GenerateData()
 
 template <typename TInputImage>
 void
-VkInverseFFTImageFilter<TInputImage>::PrintSelf(std::ostream & os, Indent indent) const
+VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
   os << indent << "DeviceID: " << m_DeviceID << std::endl;
 }
 
 template <typename TInputImage>
-typename VkInverseFFTImageFilter<TInputImage>::SizeValueType
-VkInverseFFTImageFilter<TInputImage>::GetSizeGreatestPrimeFactor() const
+typename VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::SizeValueType
+VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::GetSizeGreatestPrimeFactor() const
 {
   return VkCommon::GreatestPrimeFactor;
 }
 
 } // end namespace itk
 
-#endif // _itkVkInverseFFTImageFilter_hxx
+#endif // _itkVkHalfHermitianToRealInverseFFTImageFilter_hxx

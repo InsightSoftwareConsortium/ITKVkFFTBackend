@@ -84,7 +84,7 @@ VkForwardFFTImageFilter<TInputImage>::GenerateData()
     vkParameters.P = VkCommon::DOUBLE;
   else
     itkAssertOrThrowMacro(false, "Unsupported type for real numbers.");
-  vkParameters.fftType = VkCommon::R2FH;
+  vkParameters.fftType = VkCommon::R2FullH;
   vkParameters.PSize = sizeof(RealType);
   vkParameters.I = VkCommon::FORWARD;
   vkParameters.normalized = VkCommon::UNNORMALIZED;

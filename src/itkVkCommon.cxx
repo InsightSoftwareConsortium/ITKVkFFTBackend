@@ -116,7 +116,7 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
     configuration.makeForwardPlanOnly = (vkParameters->I == FORWARD);
 
     // Configure the buffers.  Some of these three pointers will be nullptr or be duplicates of each
-    // other, so don't release all of them at the end.  All re-striding of data (for R2HH or R2FH,
+    // other, so don't release all of them at the end.  All re-striding of data (for R2HalfH or R2FullH,
     // regardless of forward vs. inverse) is done by VkFFT between the two GPU buffers it uses.
     cl_mem inputGPUBuffer{ nullptr };  // Copy from CPU input buffer to this GPU buffer
     cl_mem GPUBuffer{ nullptr };       // GPU buffer where main computation occurs
@@ -143,16 +143,16 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
     }
     else
     {
-      // Either R2HH or R2FH computation. Either forward or inverse.
+      // Either R2HalfH or R2FullH computation. Either forward or inverse.
       configuration.bufferNum = 1;
-      if (vkParameters->fftType == R2HH)
+      if (vkParameters->fftType == R2HalfH)
       {
-        // R2HH computation, either forward or inverse.
+        // R2HalfH computation, either forward or inverse.
         configuration.bufferStride[0] = configuration.size[0] / 2 + 1;
       }
       else
       {
-        // R2FH computation, either forward or inverse.
+        // R2FullH computation, either forward or inverse.
         configuration.bufferStride[0] = configuration.size[0];
       }
       configuration.bufferStride[1] = configuration.bufferStride[0] * configuration.size[1];
@@ -166,7 +166,7 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
 
       if (vkParameters->I == FORWARD)
       {
-        // Either R2FH or R2HH.  For forward computation, we have a smaller input buffer.
+        // Either R2FullH or R2HalfH.  For forward computation, we have a smaller input buffer.
         configuration.isInputFormatted = 1;
         configuration.inputBufferNum = 1;
         configuration.inputBufferStride[0] = configuration.size[0];
@@ -186,7 +186,7 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
       }
       else
       {
-        // Either R2FH or R2HH.  For inverse computation, we have a smaller output buffer.
+        // Either R2FullH or R2HalfH.  For inverse computation, we have a smaller output buffer.
         configuration.isOutputFormatted = 1;
         configuration.outputBufferNum = 1;
         configuration.outputBufferStride[0] = configuration.size[0];
@@ -259,9 +259,9 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
       clReleaseMemObject(outputGPUBuffer);
     }
 
-    if (vkParameters->fftType == R2FH && vkParameters->I == FORWARD)
+    if (vkParameters->fftType == R2FullH && vkParameters->I == FORWARD)
     {
-      // Compute complex conjugates for the R2FH forward computation
+      // Compute complex conjugates for the R2FullH forward computation
       switch (vkParameters->P)
       {
         case FLOAT:
@@ -301,7 +301,7 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
         }
         break;
       } // end switch (vkParameters->P)
-    }   // end if(vkParameters->fftType == R2FH && vkParameters->I == FORWARD)
+    }   // end if(vkParameters->fftType == R2FullH && vkParameters->I == FORWARD)
     deleteVkFFT(&app);
   }
 

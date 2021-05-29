@@ -15,11 +15,11 @@
  *  limitations under the License.
  *
  *=========================================================================*/
-#ifndef itkVkInverseFFTImageFilter_hxx
-#define itkVkInverseFFTImageFilter_hxx
+#ifndef itkVkRealToHalfHermitianForwardFFTImageFilter_hxx
+#define itkVkRealToHalfHermitianForwardFFTImageFilter_hxx
 
 #include "itkHalfToFullHermitianImageFilter.h"
-#include "itkVkInverseFFTImageFilter.h"
+#include "itkVkRealToHalfHermitianForwardFFTImageFilter.h"
 #include "itkIndent.h"
 #include "itkMetaDataObject.h"
 #include "itkProgressReporter.h"
@@ -31,14 +31,14 @@ namespace itk
 {
 
 template <typename TInputImage>
-VkInverseFFTImageFilter<TInputImage>::VkInverseFFTImageFilter()
+VkRealToHalfHermitianForwardFFTImageFilter<TInputImage>::VkRealToHalfHermitianForwardFFTImageFilter()
 {
   this->DynamicMultiThreadingOn();
 }
 
 template <typename TInputImage>
 void
-VkInverseFFTImageFilter<TInputImage>::GenerateData()
+VkRealToHalfHermitianForwardFFTImageFilter<TInputImage>::GenerateData()
 {
   // get pointers to the input and output
   const InputImageType * const input{ this->GetInput() };
@@ -84,10 +84,10 @@ VkInverseFFTImageFilter<TInputImage>::GenerateData()
     vkParameters.P = VkCommon::DOUBLE;
   else
     itkAssertOrThrowMacro(false, "Unsupported type for real numbers.");
-  vkParameters.fftType = VkCommon::R2FullH;
+  vkParameters.fftType = VkCommon::R2HalfH;
   vkParameters.PSize = sizeof(RealType);
-  vkParameters.I = VkCommon::INVERSE;
-  vkParameters.normalized = VkCommon::NORMALIZED;
+  vkParameters.I = VkCommon::FORWARD;
+  vkParameters.normalized = VkCommon::UNNORMALIZED;
 
   vkParameters.inputCPUBuffer = inputCPUBuffer;
   vkParameters.inputBufferBytes = inBytes;
@@ -105,19 +105,19 @@ VkInverseFFTImageFilter<TInputImage>::GenerateData()
 
 template <typename TInputImage>
 void
-VkInverseFFTImageFilter<TInputImage>::PrintSelf(std::ostream & os, Indent indent) const
+VkRealToHalfHermitianForwardFFTImageFilter<TInputImage>::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
   os << indent << "DeviceID: " << m_DeviceID << std::endl;
 }
 
 template <typename TInputImage>
-typename VkInverseFFTImageFilter<TInputImage>::SizeValueType
-VkInverseFFTImageFilter<TInputImage>::GetSizeGreatestPrimeFactor() const
+typename VkRealToHalfHermitianForwardFFTImageFilter<TInputImage>::SizeValueType
+VkRealToHalfHermitianForwardFFTImageFilter<TInputImage>::GetSizeGreatestPrimeFactor() const
 {
   return VkCommon::GreatestPrimeFactor;
 }
 
 } // end namespace itk
 
-#endif // _itkVkInverseFFTImageFilter_hxx
+#endif // _itkVkRealToHalfHermitianForwardFFTImageFilter_hxx
