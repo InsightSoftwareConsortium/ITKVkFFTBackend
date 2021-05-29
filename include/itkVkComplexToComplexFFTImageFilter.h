@@ -47,19 +47,20 @@ public:
 
   using InputImageType = TImage;
   using OutputImageType = TImage;
+  static_assert(std::is_same<typename TImage::PixelType, std::complex<float>>::value ||
+                  std::is_same<typename TImage::PixelType, std::complex<double>>::value,
+                "Unsupported pixel type");
+  static_assert(TImage::ImageDimension >= 1 && TImage::ImageDimension <= 3, "Unsupported image dimension");
 
   /** Standard class type aliases. */
   using Self = VkComplexToComplexFFTImageFilter;
   using Superclass = ComplexToComplexFFTImageFilter<TImage>;
   using Pointer = SmartPointer<Self>;
   using ConstPointer = SmartPointer<const Self>;
-
   using InputPixelType = typename InputImageType::PixelType;
   using OutputPixelType = typename OutputImageType::PixelType;
   using ComplexType = InputPixelType;
   using RealType = typename ComplexType::value_type;
-  static_assert(std::is_same<RealType, float>::value || std::is_same<RealType, double>::value,
-                "Unsupported pixel type");
   using SizeType = typename InputImageType::SizeType;
   using SizeValueType = typename InputImageType::SizeValueType;
   using OutputImageRegionType = typename OutputImageType::RegionType;

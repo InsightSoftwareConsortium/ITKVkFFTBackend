@@ -80,16 +80,19 @@ VkComplexToComplexFFTImageFilter<TImage>::GenerateData()
   if (ImageDimension > 2)
     vkParameters.Z = inputSize[2];
   if (std::is_same<RealType, float>::value)
-    vkParameters.P = VkCommon::FLOAT;
+    vkParameters.P = VkCommon::PrecisionEnum::FLOAT;
   else if (std::is_same<RealType, double>::value)
-    vkParameters.P = VkCommon::DOUBLE;
+    vkParameters.P = VkCommon::PrecisionEnum::DOUBLE;
   else
     itkAssertOrThrowMacro(false, "Unsupported type for real numbers.");
-  vkParameters.fftType = VkCommon::C2C;
+  vkParameters.fft = VkCommon::FFTEnum::C2C;
   vkParameters.PSize = sizeof(RealType);
-  vkParameters.I = this->GetTransformDirection() == Superclass::TransformDirectionEnum::INVERSE ? VkCommon::INVERSE
-                                                                                                : VkCommon::FORWARD;
-  vkParameters.normalized = vkParameters.I == VkCommon::INVERSE ? VkCommon::NORMALIZED : VkCommon::UNNORMALIZED;
+  vkParameters.I = this->GetTransformDirection() == Superclass::TransformDirectionEnum::INVERSE
+                     ? VkCommon::DirectionEnum::INVERSE
+                     : VkCommon::DirectionEnum::FORWARD;
+  vkParameters.normalized = vkParameters.I == VkCommon::DirectionEnum::INVERSE
+                              ? VkCommon::NormalizationEnum::NORMALIZED
+                              : VkCommon::NormalizationEnum::UNNORMALIZED;
 
   vkParameters.inputCPUBuffer = inputCPUBuffer;
   vkParameters.inputBufferBytes = inBytes;

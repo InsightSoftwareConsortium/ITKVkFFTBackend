@@ -53,6 +53,10 @@ public:
 
   using InputImageType = TInputImage;
   using OutputImageType = Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>;
+  static_assert(std::is_same<typename TInputImage::PixelType, std::complex<float>>::value ||
+                  std::is_same<typename TInputImage::PixelType, std::complex<double>>::value,
+                "Unsupported pixel type");
+  static_assert(TInputImage::ImageDimension >= 1 && TInputImage::ImageDimension <= 3, "Unsupported image dimension");
 
   /** Standard class type aliases. */
   using Self = VkHalfHermitianToRealInverseFFTImageFilter;
@@ -64,8 +68,6 @@ public:
   using OutputPixelType = typename OutputImageType::PixelType;
   using ComplexType = InputPixelType;
   using RealType = typename ComplexType::value_type;
-  static_assert(std::is_same<RealType, float>::value || std::is_same<RealType, double>::value,
-                "Unsupported pixel type");
   using SizeType = typename InputImageType::SizeType;
   using SizeValueType = typename InputImageType::SizeValueType;
   using OutputImageRegionType = typename OutputImageType::RegionType;

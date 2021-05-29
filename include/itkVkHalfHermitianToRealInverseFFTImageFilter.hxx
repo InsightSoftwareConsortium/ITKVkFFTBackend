@@ -79,15 +79,15 @@ VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::GenerateData()
   if (ImageDimension > 2)
     vkParameters.Z = inputSize[2];
   if (std::is_same<RealType, float>::value)
-    vkParameters.P = VkCommon::FLOAT;
+    vkParameters.P = VkCommon::PrecisionEnum::FLOAT;
   else if (std::is_same<RealType, double>::value)
-    vkParameters.P = VkCommon::DOUBLE;
+    vkParameters.P = VkCommon::PrecisionEnum::DOUBLE;
   else
     itkAssertOrThrowMacro(false, "Unsupported type for real numbers.");
-  vkParameters.fftType = VkCommon::R2HalfH;
+  vkParameters.fft = VkCommon::FFTEnum::R2HalfH;
   vkParameters.PSize = sizeof(RealType);
-  vkParameters.I = VkCommon::INVERSE;
-  vkParameters.normalized = VkCommon::NORMALIZED;
+  vkParameters.I = VkCommon::DirectionEnum::INVERSE;
+  vkParameters.normalized = VkCommon::NormalizationEnum::NORMALIZED;
 
   vkParameters.inputCPUBuffer = inputCPUBuffer;
   vkParameters.inputBufferBytes = inBytes;

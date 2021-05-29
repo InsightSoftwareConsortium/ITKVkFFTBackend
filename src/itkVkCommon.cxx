@@ -98,12 +98,12 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
       }
     }
     configuration.numberBatches = vkParameters->B;
-    configuration.performR2C = vkParameters->fftType == C2C ? 0 : 1;
-    if (vkParameters->P == DOUBLE)
+    configuration.performR2C = vkParameters->fft == FFTEnum::C2C ? 0 : 1;
+    if (vkParameters->P == PrecisionEnum::DOUBLE)
       configuration.doublePrecision = 1;
     // if (vkParameters->P == HALF)
     //   configuration.halfPrecision = 1;
-    configuration.normalize = vkParameters->normalized == NORMALIZED ? 1 : 0;
+    configuration.normalize = vkParameters->normalized == NormalizationEnum::NORMALIZED ? 1 : 0;
     // After this, configuration file contains pointers to Vulkan objects needed to work with the GPU: VkDevice* device
     // - created device, [uint64_t *bufferSize, VkBuffer *buffer, VkDeviceMemory* bufferDeviceMemory] - allocated GPU
     // memory FFT is performed on. [uint64_t *kernelSize, VkBuffer *kernel, VkDeviceMemory* kernelDeviceMemory] -
@@ -112,8 +112,8 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
     configuration.platform = &vkGPU->platform;
     configuration.context = &vkGPU->context;
 
-    configuration.makeInversePlanOnly = (vkParameters->I == INVERSE);
-    configuration.makeForwardPlanOnly = (vkParameters->I == FORWARD);
+    configuration.makeInversePlanOnly = (vkParameters->I == DirectionEnum::INVERSE);
+    configuration.makeForwardPlanOnly = (vkParameters->I == DirectionEnum::FORWARD);
 
     // Configure the buffers.  Some of these three pointers will be nullptr or be duplicates of each
     // other, so don't release all of them at the end.  All re-striding of data (for R2HalfH or R2FullH,
@@ -121,7 +121,7 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
     cl_mem inputGPUBuffer{ nullptr };  // Copy from CPU input buffer to this GPU buffer
     cl_mem GPUBuffer{ nullptr };       // GPU buffer where main computation occurs
     cl_mem outputGPUBuffer{ nullptr }; // Copy from this GPU buffer to CPU output buffer
-    if (vkParameters->fftType == C2C)
+    if (vkParameters->fft == FFTEnum::C2C)
     {
       // For C2C computation we can do everything in the in-place-computation buffer.
       configuration.bufferNum = 1;
@@ -145,7 +145,7 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
     {
       // Either R2HalfH or R2FullH computation. Either forward or inverse.
       configuration.bufferNum = 1;
-      if (vkParameters->fftType == R2HalfH)
+      if (vkParameters->fft == FFTEnum::R2HalfH)
       {
         // R2HalfH computation, either forward or inverse.
         configuration.bufferStride[0] = configuration.size[0] / 2 + 1;
@@ -164,7 +164,7 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
         return VKFFT_ERROR_FAILED_TO_ALLOCATE;
       configuration.buffer = &GPUBuffer;
 
-      if (vkParameters->I == FORWARD)
+      if (vkParameters->I == DirectionEnum::FORWARD)
       {
         // Either R2FullH or R2HalfH.  For forward computation, we have a smaller input buffer.
         configuration.isInputFormatted = 1;
@@ -232,7 +232,7 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
     launchParams.buffer = configuration.buffer;
     launchParams.outputBuffer = configuration.outputBuffer;
 
-    resFFT = VkFFTAppend(&app, vkParameters->I == INVERSE ? 1 : -1, &launchParams);
+    resFFT = VkFFTAppend(&app, vkParameters->I == DirectionEnum::INVERSE ? 1 : -1, &launchParams);
     if (resFFT != VKFFT_SUCCESS)
       return resFFT;
     resCL = clFinish(vkGPU->commandQueue);
@@ -253,18 +253,18 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
       return VKFFT_ERROR_FAILED_TO_COPY;
 
     clReleaseMemObject(inputGPUBuffer);
-    if (vkParameters->fftType != C2C)
+    if (vkParameters->fft != FFTEnum::C2C)
     {
       // Release other buffer too
       clReleaseMemObject(outputGPUBuffer);
     }
 
-    if (vkParameters->fftType == R2FullH && vkParameters->I == FORWARD)
+    if (vkParameters->fft == FFTEnum::R2FullH && vkParameters->I == DirectionEnum::FORWARD)
     {
       // Compute complex conjugates for the R2FullH forward computation
       switch (vkParameters->P)
       {
-        case FLOAT:
+        case PrecisionEnum::FLOAT:
         {
           using ComplexType = std::complex<float>;
           ComplexType * const outputCPUFloat{ reinterpret_cast<ComplexType *>(vkParameters->outputCPUBuffer) };
@@ -282,7 +282,7 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
           }
         }
         break;
-        case DOUBLE:
+        case PrecisionEnum::DOUBLE:
         {
           using ComplexType = std::complex<double>;
           ComplexType * const outputCPUDouble{ reinterpret_cast<ComplexType *>(vkParameters->outputCPUBuffer) };
@@ -301,7 +301,7 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
         }
         break;
       } // end switch (vkParameters->P)
-    }   // end if(vkParameters->fftType == R2FullH && vkParameters->I == FORWARD)
+    }   // end if(vkParameters->fft == R2FullH && vkParameters->I == DirectionEnum::FORWARD)
     deleteVkFFT(&app);
   }
 

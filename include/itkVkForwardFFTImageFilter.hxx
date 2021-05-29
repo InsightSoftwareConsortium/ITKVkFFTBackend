@@ -79,15 +79,15 @@ VkForwardFFTImageFilter<TInputImage>::GenerateData()
   if (ImageDimension > 2)
     vkParameters.Z = inputSize[2];
   if (std::is_same<RealType, float>::value)
-    vkParameters.P = VkCommon::FLOAT;
+    vkParameters.P = VkCommon::PrecisionEnum::FLOAT;
   else if (std::is_same<RealType, double>::value)
-    vkParameters.P = VkCommon::DOUBLE;
+    vkParameters.P = VkCommon::PrecisionEnum::DOUBLE;
   else
     itkAssertOrThrowMacro(false, "Unsupported type for real numbers.");
-  vkParameters.fftType = VkCommon::R2FullH;
+  vkParameters.fft = VkCommon::FFTEnum::R2FullH;
   vkParameters.PSize = sizeof(RealType);
-  vkParameters.I = VkCommon::FORWARD;
-  vkParameters.normalized = VkCommon::UNNORMALIZED;
+  vkParameters.I = VkCommon::DirectionEnum::FORWARD;
+  vkParameters.normalized = VkCommon::NormalizationEnum::UNNORMALIZED;
 
   vkParameters.inputCPUBuffer = inputCPUBuffer;
   vkParameters.inputBufferBytes = inBytes;
