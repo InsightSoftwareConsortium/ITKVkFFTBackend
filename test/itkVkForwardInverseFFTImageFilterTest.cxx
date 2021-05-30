@@ -16,7 +16,8 @@
  *
  *=========================================================================*/
 
-#include "itkVkComplexToComplexFFTImageFilter.h"
+#include "itkVkForwardFFTImageFilter.h"
+#include "itkVkInverseFFTImageFilter.h"
 
 #include "itkCommand.h"
 #include "itkImageFileWriter.h"
@@ -53,136 +54,124 @@ public:
 } // namespace
 
 int
-itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
+itkVkForwardInverseFFTImageFilterTest(int argc, char * argv[])
 {
-  int testNumber{ 0 };
+  int  testNumber{ 0 };
+  bool testsPassed{ true };
   {
-    if (argc != 2)
+    if (argc != 1)
     {
       std::cerr << "Missing parameters." << std::endl;
       std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
-      std::cerr << " outputImage";
       std::cerr << std::endl;
       return EXIT_FAILURE;
     }
-    const char * outputImageFileName = argv[1];
 
-    constexpr unsigned int Dimension{ 2 };
-    using ComplexType = std::complex<double>;
-    using ComplexImageType = itk::Image<ComplexType, Dimension>;
-
-    using FilterType = itk::VkComplexToComplexFFTImageFilter<ComplexImageType>;
-    typename FilterType::Pointer filter{ FilterType::New() };
-    filter->SetDeviceID(0);
-
-    ITK_EXERCISE_BASIC_OBJECT_METHODS(filter, VkComplexToComplexFFTImageFilter, ComplexToComplexFFTImageFilter);
-
-    // Create input image to avoid test dependencies.
-    typename ComplexImageType::SizeType size;
-    size.Fill(128);
-    typename ComplexImageType::Pointer image{ ComplexImageType::New() };
-    image->SetRegions(size);
-    image->Allocate();
-    image->FillBuffer(1.1f);
-
-    typename ShowProgress::Pointer showProgress{ ShowProgress::New() };
-    filter->AddObserver(itk::ProgressEvent(), showProgress);
-    filter->SetInput(image);
-
-    using WriterType = itk::ImageFileWriter<ComplexImageType>;
-    typename WriterType::Pointer writer{ WriterType::New() };
-    writer->SetFileName(outputImageFileName);
-    writer->SetInput(filter->GetOutput());
-    writer->SetUseCompression(true);
-
-    ITK_TRY_EXPECT_NO_EXCEPTION(writer->Update());
-    std::cout << std::endl << "Test " << ++testNumber << "... passed." << std::endl;
-  }
-
-  bool testsPassed{ true };
-  {
     constexpr unsigned int Dimension{ 1 };
     using RealType = float;
     using ComplexType = std::complex<RealType>;
+    using RealImageType = itk::Image<RealType, Dimension>;
     using ComplexImageType = itk::Image<ComplexType, Dimension>;
-    typename ComplexImageType::SizeType size;
+    typename RealImageType::SizeType  size;
+    typename RealImageType::IndexType index;
     for (int mySize = 1; mySize <= 20; ++mySize)
     {
       size.Fill(mySize);
-      typename ComplexImageType::Pointer image{ ComplexImageType::New() };
-      image->SetRegions(size);
-      image->Allocate();
-      const ComplexType zeroValue{ 0.0, 0.0 };
-      image->FillBuffer(zeroValue);
-      typename ComplexImageType::IndexType index;
-      index.Fill(0);
-      const ComplexType someValue{ 1.23, 4.567 };
-      image->SetPixel(index, someValue);
 
-      using FilterType = itk::VkComplexToComplexFFTImageFilter<ComplexImageType>;
-      typename FilterType::Pointer filter{ FilterType::New() };
-      filter->SetDeviceID(0);
-      filter->SetInput(image);
+      typename RealImageType::Pointer realImage{ RealImageType::New() };
+      realImage->SetRegions(size);
+      realImage->Allocate();
+      const RealType realZeroValue{ 0.0 };
+      realImage->FillBuffer(realZeroValue);
+      index.Fill(0);
+      const RealType realSomeValue{ 4.567 };
+      realImage->SetPixel(index, realSomeValue);
+      using ForwardFilterType = itk::VkForwardFFTImageFilter<RealImageType>;
+      typename ForwardFilterType::Pointer forwardFilter{ ForwardFilterType::New() };
+      ITK_EXERCISE_BASIC_OBJECT_METHODS(forwardFilter, VkForwardFFTImageFilter, ForwardFFTImageFilter);
+      forwardFilter->SetDeviceID(0);
+      forwardFilter->SetInput(realImage);
+
+      typename ComplexImageType::Pointer complexImage{ ComplexImageType::New() };
+      complexImage->SetRegions(size);
+      complexImage->Allocate();
+      const ComplexType complexZeroValue{ 0.0, 0.0 };
+      complexImage->FillBuffer(complexZeroValue);
+      index.Fill(0);
+      const ComplexType complexSomeValue{ 4.567, 0.0 };
+      complexImage->SetPixel(index, complexSomeValue);
+      using InverseFilterType = itk::VkInverseFFTImageFilter<ComplexImageType>;
+      typename InverseFilterType::Pointer inverseFilter{ InverseFilterType::New() };
+      ITK_EXERCISE_BASIC_OBJECT_METHODS(inverseFilter, VkInverseFFTImageFilter, InverseFFTImageFilter);
+      inverseFilter->SetDeviceID(0);
+      inverseFilter->SetInput(complexImage);
+
       if (mySize == 1 || mySize == 17 || mySize == 19)
       {
         // Anything evenly divisible by a prime number greater than 13 is expected to fail.  A size of 1
         // fails too, for reasons that aren't clear.
-        ITK_TRY_EXPECT_EXCEPTION(filter->Update());
+        ITK_TRY_EXPECT_EXCEPTION(forwardFilter->Update());
         std::cout << std::flush;
         std::cerr << std::flush;
         std::cout << "Test " << ++testNumber << " (forward, size=" << mySize << ") ... passed." << std::endl;
 
-        filter->SetTransformDirection(FilterType::TransformDirectionEnum::INVERSE);
-        ITK_TRY_EXPECT_EXCEPTION(filter->Update());
+        ITK_TRY_EXPECT_EXCEPTION(inverseFilter->Update());
         std::cout << std::flush;
         std::cerr << std::flush;
         std::cout << "Test " << ++testNumber << " (inverse, size=" << mySize << ") ... passed." << std::endl;
       }
       else
       {
-        filter->Update();
-        typename ComplexImageType::Pointer        output{ filter->GetOutput() };
-        bool                                      thisTestPassed{ true };
+        bool thisTestPassed{ true };
+        forwardFilter->Update();
+        typename ComplexImageType::Pointer        output{ forwardFilter->GetOutput() };
         const typename ComplexImageType::SizeType outputSize{ output->GetLargestPossibleRegion().GetSize() };
         if (outputSize[0] != mySize)
+        {
+          std::cout << "Size is " << outputSize[0] << " but should be " << mySize << "." << std::endl;
           thisTestPassed = false;
+        }
         for (int i = 0; i < mySize; ++i)
         {
           index[0] = i;
-          if (output->GetPixel(index) != someValue)
+          if (std::abs(output->GetPixel(index) - complexSomeValue) > 1e-6)
+          {
+            std::cout << output->GetPixel(index)
+                      << ": |difference| = " << std::abs(output->GetPixel(index) - complexSomeValue) << std::endl;
             thisTestPassed = false;
+          }
         }
         std::cout << "Test " << ++testNumber << " (forward, size=" << mySize << ") ... "
                   << (thisTestPassed ? "passed." : "failed.") << std::endl;
         testsPassed &= thisTestPassed;
 
-        filter->SetTransformDirection(FilterType::TransformDirectionEnum::INVERSE);
-        filter->SetInput(output);
-        filter->Update();
-        typename ComplexImageType::Pointer output2{ filter->GetOutput() };
         thisTestPassed = true;
-        const typename ComplexImageType::SizeType output2Size{ output2->GetLargestPossibleRegion().GetSize() };
+        inverseFilter->SetInput(output);
+        inverseFilter->Update();
+        typename RealImageType::Pointer        output2{ inverseFilter->GetOutput() };
+        const typename RealImageType::SizeType output2Size{ output2->GetLargestPossibleRegion().GetSize() };
         if (output2Size[0] != mySize)
         {
           std::cout << "Size is " << output2Size[0] << " but should be " << mySize << "." << std::endl;
           thisTestPassed = false;
         }
         index[0] = 0;
-        if (std::abs(output2->GetPixel(index) - someValue) > 1e-6)
+        if (std::abs(output2->GetPixel(index) - realSomeValue) > 1e-6)
         {
-          std::cout << "|difference| = " << std::abs(output2->GetPixel(index) - someValue) << std::endl;
+          std::cout << output2->GetPixel(index)
+                    << ": |difference| = " << std::abs(output2->GetPixel(index) - realSomeValue) << std::endl;
           thisTestPassed = false;
         }
         for (int i = 1; i < mySize; ++i)
         {
           index[0] = i;
-          if (std::abs(output2->GetPixel(index) - zeroValue) > 1e-6)
+          if (std::abs(output2->GetPixel(index) - realZeroValue) > 1e-6)
           {
-            std::cout << "|difference| = " << std::abs(output2->GetPixel(index) - zeroValue) << std::endl;
+            std::cout << output2->GetPixel(index)
+                      << ": |difference| = " << std::abs(output2->GetPixel(index) - realZeroValue) << std::endl;
             thisTestPassed = false;
           }
         }
-        std::cout << std::endl;
         std::cout << "Test " << ++testNumber << " (inverse, size=" << mySize << ") ... "
                   << (thisTestPassed ? "passed." : "failed.") << std::endl;
         testsPassed &= thisTestPassed;
