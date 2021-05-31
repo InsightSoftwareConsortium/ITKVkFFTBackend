@@ -54,10 +54,10 @@ VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::GenerateData()
   const ProgressReporter progress(this, 0, 1);
 
   // allocate output buffer memory
-  output->SetBufferedRegion(output->GetRequestedRegion());
+  output->SetRegions(this->GetOutputRegion());
   output->Allocate();
 
-  const SizeType & inputSize{ input->GetLargestPossibleRegion().GetSize() };
+  const SizeType & outputSize{ output->GetBufferedRegion().GetSize() };
 
   const InputPixelType * const inputCPUBuffer{ input->GetBufferPointer() };
   OutputPixelType * const      outputCPUBuffer{ output->GetBufferPointer() };
@@ -66,6 +66,9 @@ VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::GenerateData()
   const SizeValueType inBytes{ input->GetLargestPossibleRegion().GetNumberOfPixels() * sizeof(InputPixelType) };
   const SizeValueType outBytes{ output->GetLargestPossibleRegion().GetNumberOfPixels() * sizeof(OutputPixelType) };
 
+  itkAssertOrThrowMacro(input->GetBufferedRegion().GetSize()[0] == outputSize[0] / 2 + 1,
+                        "Input image's first dimension must equal floor((output image's first dimension)/2) + 1");
+
   // Mostly use defaults for VkCommon::VkGPU
   typename VkCommon::VkGPU vkGPU;
   vkGPU.device_id = m_DeviceID;
@@ -73,11 +76,11 @@ VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::GenerateData()
   // Describe this filter in VkCommon::VkParameters
   typename VkCommon::VkParameters vkParameters;
   if (ImageDimension > 0)
-    vkParameters.X = inputSize[0];
+    vkParameters.X = outputSize[0];
   if (ImageDimension > 1)
-    vkParameters.Y = inputSize[1];
+    vkParameters.Y = outputSize[1];
   if (ImageDimension > 2)
-    vkParameters.Z = inputSize[2];
+    vkParameters.Z = outputSize[2];
   if (std::is_same<RealType, float>::value)
     vkParameters.P = VkCommon::PrecisionEnum::FLOAT;
   else if (std::is_same<RealType, double>::value)

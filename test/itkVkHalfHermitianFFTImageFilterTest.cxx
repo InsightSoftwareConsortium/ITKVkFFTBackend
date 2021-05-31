@@ -16,8 +16,8 @@
  *
  *=========================================================================*/
 
-#include "itkVkForwardFFTImageFilter.h"
-#include "itkVkInverseFFTImageFilter.h"
+#include "itkVkRealToHalfHermitianForwardFFTImageFilter.h"
+#include "itkVkHalfHermitianToRealInverseFFTImageFilter.h"
 
 #include "itkCommand.h"
 #include "itkImageFileWriter.h"
@@ -54,7 +54,7 @@ public:
 } // namespace
 
 int
-itkVkForwardInverseFFTImageFilterTest(int argc, char * argv[])
+itkVkHalfHermitianFFTImageFilterTest(int argc, char * argv[])
 {
   int  testNumber{ 0 };
   bool testsPassed{ true };
@@ -88,11 +88,12 @@ itkVkForwardInverseFFTImageFilterTest(int argc, char * argv[])
       index.Fill(0);
       const RealType realSomeValue{ 4.567 };
       realImage->SetPixel(index, realSomeValue);
-      using ForwardFilterType = itk::VkForwardFFTImageFilter<RealImageType>;
+      using ForwardFilterType = itk::VkRealToHalfHermitianForwardFFTImageFilter<RealImageType>;
       typename ForwardFilterType::Pointer forwardFilter{ ForwardFilterType::New() };
       if (firstPass)
       {
-        ITK_EXERCISE_BASIC_OBJECT_METHODS(forwardFilter, VkForwardFFTImageFilter, ForwardFFTImageFilter);
+        ITK_EXERCISE_BASIC_OBJECT_METHODS(
+          forwardFilter, VkRealToHalfHermitianForwardFFTImageFilter, RealToHalfHermitianForwardFFTImageFilter);
       }
       forwardFilter->SetDeviceID(0);
       forwardFilter->SetInput(realImage);
@@ -105,11 +106,12 @@ itkVkForwardInverseFFTImageFilterTest(int argc, char * argv[])
       index.Fill(0);
       const ComplexType complexSomeValue{ 4.567, 0.0 };
       complexImage->SetPixel(index, complexSomeValue);
-      using InverseFilterType = itk::VkInverseFFTImageFilter<ComplexImageType>;
+      using InverseFilterType = itk::VkHalfHermitianToRealInverseFFTImageFilter<ComplexImageType>;
       typename InverseFilterType::Pointer inverseFilter{ InverseFilterType::New() };
       if (firstPass)
       {
-        ITK_EXERCISE_BASIC_OBJECT_METHODS(inverseFilter, VkInverseFFTImageFilter, InverseFFTImageFilter);
+        ITK_EXERCISE_BASIC_OBJECT_METHODS(
+          inverseFilter, VkHalfHermitianToRealInverseFFTImageFilter, HalfHermitianToRealInverseFFTImageFilter);
       }
       inverseFilter->SetDeviceID(0);
       inverseFilter->SetInput(complexImage);
@@ -123,6 +125,8 @@ itkVkForwardInverseFFTImageFilterTest(int argc, char * argv[])
         std::cerr << std::flush;
         std::cout << "Test " << ++testNumber << " (forward, size=" << mySize << ") ... passed." << std::endl;
 
+        index[0] = 0;
+        inverseFilter->SetOutputRegion({ index, size });
         ITK_TRY_EXPECT_EXCEPTION(inverseFilter->Update());
         std::cout << std::flush;
         std::cerr << std::flush;
@@ -134,12 +138,13 @@ itkVkForwardInverseFFTImageFilterTest(int argc, char * argv[])
         forwardFilter->Update();
         typename ComplexImageType::Pointer        output{ forwardFilter->GetOutput() };
         const typename ComplexImageType::SizeType outputSize{ output->GetLargestPossibleRegion().GetSize() };
-        if (outputSize[0] != mySize)
+        const int                                 desiredOutputSize = mySize / 2 + 1;
+        if (outputSize[0] != desiredOutputSize)
         {
-          std::cout << "Size is " << outputSize[0] << " but should be " << mySize << "." << std::endl;
+          std::cout << "Size is " << outputSize[0] << " but should be " << desiredOutputSize << "." << std::endl;
           thisTestPassed = false;
         }
-        for (int i = 0; i < mySize; ++i)
+        for (int i = 0; i < desiredOutputSize; ++i)
         {
           index[0] = i;
           if (std::abs(output->GetPixel(index) - complexSomeValue) > 1e-6)
@@ -155,6 +160,8 @@ itkVkForwardInverseFFTImageFilterTest(int argc, char * argv[])
 
         thisTestPassed = true;
         inverseFilter->SetInput(output);
+        index[0] = 0;
+        inverseFilter->SetOutputRegion({ index, size });
         inverseFilter->Update();
         typename RealImageType::Pointer        output2{ inverseFilter->GetOutput() };
         const typename RealImageType::SizeType output2Size{ output2->GetLargestPossibleRegion().GetSize() };

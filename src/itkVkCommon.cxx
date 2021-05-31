@@ -35,14 +35,20 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
     cl_uint numPlatforms;
     resCL = clGetPlatformIDs(0, nullptr, &numPlatforms);
     if (resCL != CL_SUCCESS)
+    {
+      std::cerr << __FILE__ "(" << __LINE__ << "): clGetPlatformIDs returned " << resCL << std::endl;
       return VKFFT_ERROR_FAILED_TO_INITIALIZE;
+    }
     std::unique_ptr<cl_platform_id[]> platformsArray{ std::make_unique<cl_platform_id[]>(numPlatforms) };
     cl_platform_id *                  platforms{ &platformsArray[0] };
     if (!platforms)
       return VKFFT_ERROR_MALLOC_FAILED;
     resCL = clGetPlatformIDs(numPlatforms, platforms, nullptr);
     if (resCL != CL_SUCCESS)
+    {
+      std::cerr << __FILE__ "(" << __LINE__ << "): clGetPlatformIDs returned " << resCL << std::endl;
       return VKFFT_ERROR_FAILED_TO_INITIALIZE;
+    }
     uint64_t k{ 0 };
     for (uint64_t j = 0; j < numPlatforms; j++)
     {
@@ -54,7 +60,10 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
         return VKFFT_ERROR_MALLOC_FAILED;
       resCL = clGetDeviceIDs(platforms[j], CL_DEVICE_TYPE_ALL, numDevices, deviceList, nullptr);
       if (resCL != CL_SUCCESS)
+      {
+        std::cerr << __FILE__ "(" << __LINE__ << "): clGetDeviceIDs returned " << resCL << std::endl;
         return VKFFT_ERROR_FAILED_TO_GET_DEVICE;
+      }
       for (uint64_t i = 0; i < numDevices; i++)
       {
         if (k == vkGPU->device_id)
@@ -63,11 +72,16 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
           vkGPU->device = deviceList[i];
           vkGPU->context = clCreateContext(NULL, 1, &vkGPU->device, NULL, NULL, &resCL);
           if (resCL != CL_SUCCESS)
+          {
+            std::cerr << __FILE__ "(" << __LINE__ << "): clCreateContext returned " << resCL << std::endl;
             return VKFFT_ERROR_FAILED_TO_CREATE_CONTEXT;
-          cl_command_queue commandQueue{ clCreateCommandQueue(vkGPU->context, vkGPU->device, 0, &resCL) };
+          }
+          vkGPU->commandQueue = clCreateCommandQueue(vkGPU->context, vkGPU->device, 0, &resCL);
           if (resCL != CL_SUCCESS)
+          {
+            std::cerr << __FILE__ "(" << __LINE__ << "): clCreateCommandQueue returned " << resCL << std::endl;
             return VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_QUEUE;
-          vkGPU->commandQueue = commandQueue;
+          }
           k++;
         }
         else
@@ -138,7 +152,10 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
       inputGPUBuffer = GPUBuffer;
       outputGPUBuffer = GPUBuffer;
       if (resCL != CL_SUCCESS)
+      {
+        std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
         return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+      }
       configuration.buffer = &GPUBuffer;
     }
     else
@@ -161,7 +178,10 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
       const uint64_t bufferBytes{ 2UL * vkParameters->PSize * *configuration.bufferSize };
       GPUBuffer = clCreateBuffer(vkGPU->context, CL_MEM_READ_WRITE, bufferBytes, nullptr, &resCL);
       if (resCL != CL_SUCCESS)
+      {
+        std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
         return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+      }
       configuration.buffer = &GPUBuffer;
 
       if (vkParameters->I == DirectionEnum::FORWARD)
@@ -181,7 +201,10 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
         inputGPUBuffer = clCreateBuffer(vkGPU->context, CL_MEM_READ_WRITE, inputBufferBytes, nullptr, &resCL);
         outputGPUBuffer = GPUBuffer;
         if (resCL != CL_SUCCESS)
+        {
+          std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
           return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+        }
         configuration.inputBuffer = &inputGPUBuffer;
       }
       else
@@ -201,7 +224,10 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
         inputGPUBuffer = GPUBuffer;
         outputGPUBuffer = clCreateBuffer(vkGPU->context, CL_MEM_READ_WRITE, outputBufferBytes, nullptr, &resCL);
         if (resCL != CL_SUCCESS)
+        {
+          std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
           return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+        }
         configuration.outputBuffer = &outputGPUBuffer;
       }
     }
@@ -217,7 +243,10 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
                                  nullptr,
                                  nullptr);
     if (resCL != CL_SUCCESS)
+    {
+      std::cerr << __FILE__ "(" << __LINE__ << "): clEnqueueWriteBuffer returned " << resCL << std::endl;
       return VKFFT_ERROR_FAILED_TO_COPY;
+    }
 
     // Initialize applications. This function loads shaders, creates pipeline and configures FFT based on configuration
     // file. No buffer allocations inside VkFFT library.
@@ -237,7 +266,10 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
       return resFFT;
     resCL = clFinish(vkGPU->commandQueue);
     if (resCL != CL_SUCCESS)
+    {
+      std::cerr << __FILE__ "(" << __LINE__ << "): clFinish returned " << resCL << std::endl;
       return VKFFT_ERROR_FAILED_TO_SYNCHRONIZE;
+    }
 
     // Copy result from GPU to CPU
     resCL = clEnqueueReadBuffer(vkGPU->commandQueue,
@@ -250,7 +282,10 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
                                 nullptr,
                                 nullptr);
     if (resCL != CL_SUCCESS)
+    {
+      std::cerr << __FILE__ "(" << __LINE__ << "): clEnqueueReadBuffer returned " << resCL << std::endl;
       return VKFFT_ERROR_FAILED_TO_COPY;
+    }
 
     clReleaseMemObject(inputGPUBuffer);
     if (vkParameters->fft != FFTEnum::C2C)
@@ -308,8 +343,16 @@ VkCommon::run(VkGPU * vkGPU, const VkParameters * vkParameters)
   // Return to launchVkFFT code
   resCL = clReleaseCommandQueue(vkGPU->commandQueue);
   if (resCL != CL_SUCCESS)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): clReleaseCommandQueue returned " << resCL << std::endl;
     return VKFFT_ERROR_FAILED_TO_RELEASE_COMMAND_QUEUE;
-  clReleaseContext(vkGPU->context);
+  }
+  resCL = clReleaseContext(vkGPU->context);
+  if (resCL != CL_SUCCESS)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): clReleaseContext returned " << resCL << std::endl;
+    return VKFFT_ERROR_FAILED_TO_RELEASE_COMMAND_QUEUE;
+  }
 
   return resFFT;
 }

@@ -83,6 +83,9 @@ public:
   itkGetMacro(DeviceID, uint64_t);
   itkSetMacro(DeviceID, uint64_t);
 
+  itkSetMacro(OutputRegion, OutputImageRegionType);
+  itkGetConstMacro(OutputRegion, OutputImageRegionType);
+
   SizeValueType
   GetSizeGreatestPrimeFactor() const override;
 
@@ -98,7 +101,10 @@ protected:
 
 private:
   uint64_t m_DeviceID{ 0UL };
+
+  OutputImageRegionType m_OutputRegion;
 };
+
 } // namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION

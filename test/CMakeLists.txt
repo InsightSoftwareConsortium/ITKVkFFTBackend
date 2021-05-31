@@ -4,6 +4,7 @@ set(VkFFTBackendTests
   itkMinimalStandardRandomVariateGeneratorTest.cxx
   itkVkComplexToComplexFFTImageFilterTest.cxx
   itkVkForwardInverseFFTImageFilterTest.cxx
+  itkVkHalfHermitianFFTImageFilterTest.cxx
   )
 
 include_directories(${VkFFTBackend_INCLUDE_DIRS})
@@ -29,4 +30,8 @@ itk_add_test(NAME itkVkComplexToComplexFFTImageFilterTest
 
 itk_add_test(NAME itkVkForwardInverseFFTImageFilterTest
   COMMAND VkFFTBackendTestDriver itkVkForwardInverseFFTImageFilterTest
+  )
+
+itk_add_test(NAME itkVkHalfHermitianFFTImageFilterTest
+  COMMAND VkFFTBackendTestDriver itkVkHalfHermitianFFTImageFilterTest
   )

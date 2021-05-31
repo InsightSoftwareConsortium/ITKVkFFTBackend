@@ -108,7 +108,8 @@ itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
     typename ComplexImageType::SizeType size;
     for (int mySize = 1; mySize <= 20; ++mySize)
     {
-      size.Fill(mySize);
+      size.Fill(0);
+      size[0] = mySize;
       typename ComplexImageType::Pointer image{ ComplexImageType::New() };
       image->SetRegions(size);
       image->Allocate();
