@@ -22,14 +22,6 @@
 #include "itkDataObject.h"
 #include "vkFFT.h"
 
-// Remove me!!!
-#define VKFFTBACKEND_HEREIAM                                                                                           \
-  do                                                                                                                   \
-  {                                                                                                                    \
-    std::cout << "func: " << __func__ << " (" __FILE__ "::" << __LINE__ << ")" << std::endl << std::flush;             \
-  } while (false)
-
-
 namespace itk
 {
 

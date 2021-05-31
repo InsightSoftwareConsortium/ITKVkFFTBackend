@@ -33,7 +33,6 @@ namespace itk
 template <typename TImage>
 VkComplexToComplexFFTImageFilter<TImage>::VkComplexToComplexFFTImageFilter()
 {
-  this->DynamicMultiThreadingOn();
 }
 
 template <typename TImage>

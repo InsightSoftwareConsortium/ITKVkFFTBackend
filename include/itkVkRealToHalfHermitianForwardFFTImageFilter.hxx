@@ -33,7 +33,6 @@ namespace itk
 template <typename TInputImage>
 VkRealToHalfHermitianForwardFFTImageFilter<TInputImage>::VkRealToHalfHermitianForwardFFTImageFilter()
 {
-  this->DynamicMultiThreadingOn();
 }
 
 template <typename TInputImage>

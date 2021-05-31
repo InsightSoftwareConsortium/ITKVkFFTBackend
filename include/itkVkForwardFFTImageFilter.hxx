@@ -33,7 +33,6 @@ namespace itk
 template <typename TInputImage>
 VkForwardFFTImageFilter<TInputImage>::VkForwardFFTImageFilter()
 {
-  this->DynamicMultiThreadingOn();
 }
 
 template <typename TInputImage>
