@@ -83,20 +83,25 @@ itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
     typename ComplexImageType::Pointer image{ ComplexImageType::New() };
     image->SetRegions(size);
     image->Allocate();
-    image->FillBuffer(1.1f);
 
     typename ShowProgress::Pointer showProgress{ ShowProgress::New() };
-    filter->AddObserver(itk::ProgressEvent(), showProgress);
-    filter->SetInput(image);
 
-    using WriterType = itk::ImageFileWriter<ComplexImageType>;
-    typename WriterType::Pointer writer{ WriterType::New() };
-    writer->SetFileName(outputImageFileName);
-    writer->SetInput(filter->GetOutput());
-    writer->SetUseCompression(true);
+    for (int i = 0; i < 2; ++i)
+    {
+      image->FillBuffer(1.2f);
+      image->FillBuffer(1.1f);
+      filter->AddObserver(itk::ProgressEvent(), showProgress);
+      filter->SetInput(image);
 
-    ITK_TRY_EXPECT_NO_EXCEPTION(writer->Update());
-    std::cout << std::endl << "Test " << ++testNumber << "... passed." << std::endl;
+      using WriterType = itk::ImageFileWriter<ComplexImageType>;
+      typename WriterType::Pointer writer{ WriterType::New() };
+      writer->SetFileName(outputImageFileName);
+      writer->SetInput(filter->GetOutput());
+      writer->SetUseCompression(true);
+
+      ITK_TRY_EXPECT_NO_EXCEPTION(writer->Update());
+      std::cout << std::endl << "Test " << ++testNumber << "... passed." << std::endl;
+    }
   }
 
   bool testsPassed{ true };
@@ -146,7 +151,9 @@ itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
         bool                                      thisTestPassed{ true };
         const typename ComplexImageType::SizeType outputSize{ output->GetLargestPossibleRegion().GetSize() };
         if (outputSize[0] != mySize)
+        {
           thisTestPassed = false;
+        }
         for (int i = 0; i < mySize; ++i)
         {
           index[0] = i;

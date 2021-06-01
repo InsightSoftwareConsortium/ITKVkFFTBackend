@@ -103,6 +103,8 @@ private:
   uint64_t m_DeviceID{ 0UL };
 
   OutputImageRegionType m_OutputRegion;
+
+  VkCommon m_VkCommon{};
 };
 
 } // namespace itk

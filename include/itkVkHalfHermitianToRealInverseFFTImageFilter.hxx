@@ -32,8 +32,7 @@ namespace itk
 
 template <typename TInputImage>
 VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::VkHalfHermitianToRealInverseFFTImageFilter()
-{
-}
+{}
 
 template <typename TInputImage>
 void
@@ -96,7 +95,7 @@ VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::GenerateData()
   vkParameters.outputCPUBuffer = outputCPUBuffer;
   vkParameters.outputBufferBytes = outBytes;
 
-  const VkFFTResult resFFT{ VkCommon::run(&vkGPU, &vkParameters) };
+  const VkFFTResult resFFT{ m_VkCommon.Run(vkGPU, vkParameters) };
   if (resFFT != VKFFT_SUCCESS)
   {
     std::ostringstream mesg;
@@ -117,7 +116,7 @@ template <typename TInputImage>
 typename VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::SizeValueType
 VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::GetSizeGreatestPrimeFactor() const
 {
-  return VkCommon::GreatestPrimeFactor;
+  return m_VkCommon.GetGreatestPrimeFactor();
 }
 
 } // end namespace itk

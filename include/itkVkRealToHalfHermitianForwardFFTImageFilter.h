@@ -98,7 +98,10 @@ protected:
 
 private:
   uint64_t m_DeviceID{ 0UL };
+
+  VkCommon m_VkCommon{};
 };
+
 } // namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
