@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.10.2)
 project(VkFFTBackend)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 set(VkFFTBackend_LIBRARIES VkFFTBackend)
 
 if(NOT ITK_SOURCE_DIR)
@@ -18,6 +21,7 @@ if(NOT ITK_BINARY_DIR)
 endif()
 ")
 set(VkFFTBackend_SYSTEM_INCLUDE_DIRS ${OpenCL_INCLUDE_DIRS})
+get_filename_component(OpenCL_LIB_DIR ${OpenCL_LIBRARY} DIRECTORY)
 set(VkFFTBackend_SYSTEM_LIBRARY_DIRS ${OpenCL_LIB_DIR})
 
 message(STATUS "==== Show all variables (CMakeLists.txt begin) ===")
