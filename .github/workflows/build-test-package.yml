@@ -13,6 +13,7 @@ jobs:
           - os: ubuntu-18.04
             c-compiler: "gcc"
             cxx-compiler: "g++"
+            clang-version: "10.0"
             pocl-git-tag: "release_1_7"
             opencl-icd-loader-git-tag: "v2021.04.29"
             opencl-headers-git-tag: "v2021.04.29"
@@ -23,6 +24,7 @@ jobs:
           - os: windows-2019
             c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
+            clang-version: "10.0"
             pocl-git-tag: "release_1_7"
             opencl-icd-loader-git-tag: "v2021.04.29"
             opencl-headers-git-tag: "v2021.04.29"
@@ -33,6 +35,7 @@ jobs:
           - os: macos-10.15
             c-compiler: "clang"
             cxx-compiler: "clang++"
+            clang-version: "10.0"
             pocl-git-tag: "release_1_7"
             opencl-icd-loader-git-tag: "v2021.04.29"
             opencl-headers-git-tag: "v2021.04.29"
@@ -87,6 +90,12 @@ jobs:
         git clone https://github.com/InsightSoftwareConsortium/ITK.git
         cd ITK
         git checkout ${{ matrix.itk-git-tag }}
+
+    - name: Install LLVM and Clang
+      if: matrix.os != 'macos-10.15'
+      uses: KyleMayes/install-llvm-action@v1
+      with:
+        version: ${{ matrix.clang-version }}
 
     - name: Build pocl
       if: matrix.os != 'windows-2019'
