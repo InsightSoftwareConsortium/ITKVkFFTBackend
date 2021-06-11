@@ -58,6 +58,12 @@ jobs:
     - name: Get specific version of CMake, Ninja
       uses: lukka/get-cmake@v3.18.3
 
+    - name: Get LLVM and clang
+      if: matrix.os == 'ubuntu-18.04'
+      run: |
+        sudo apt install llvm-10-dev clang-10 libclang-cpp10-dev
+      shell: bash
+
     - name: Download POCL
       shell: bash
       run: |
