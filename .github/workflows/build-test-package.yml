@@ -61,15 +61,15 @@ jobs:
     - name: Get LLVM and clang
       if: matrix.os == 'ubuntu-18.04'
       run: |
-        sudo apt install llvm-10-dev clang-10 libclang-cpp10-dev
+        sudo apt install llvm-11-dev clang-11 libclang-cpp11-dev
       shell: bash
 
     - name: Get LLVM and clang
       if: matrix.os == 'windows-2019'
       run: |
-        curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.0/LLVM-10.0.0-win64.exe -O
-        chmod u+x LLVM-10.0.0-win64.exe
-        LLVM-10.0.0-win64.exe
+        curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe -O
+        chmod u+x LLVM-11.0.0-win64.exe
+        LLVM-11.0.0-win64.exe
       shell: cmd
 
     - name: Get LLVM and clang
