@@ -61,7 +61,10 @@ jobs:
     - name: Get LLVM and clang
       if: matrix.os == 'ubuntu-18.04'
       run: |
-        sudo apt install llvm-11-dev clang-11 libclang-cpp11-dev
+        curl -L https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo apt-add-repository "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-11 main"
+        sudo apt update
+        sudo apt install clang-format clang-tidy clang-tools clang libc++-dev libc++1 libc++abi-dev libc++abi1 libclang-dev libclang1 libomp-dev libomp5 lld lldb llvm-dev llvm-runtime llvm
       shell: bash
 
     - name: Get LLVM and clang
@@ -75,7 +78,7 @@ jobs:
     - name: Get LLVM and clang
       if: matrix.os == 'macos-10.15'
       run: |
-        brew install llvm
+        brew link llvm --force
       shell: bash
 
     - name: Download POCL
@@ -110,12 +113,12 @@ jobs:
         git checkout ${{ matrix.itk-git-tag }}
 
     - name: Build pocl
-      if: matrix.os != 'windows-2019'
+      if: matrix.os == 'ubuntu-18.04'
       run: |
         cd ..
         mkdir pocl-build
         cd pocl-build
-        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
         ninja
 
     - name: Build pocl
@@ -125,9 +128,18 @@ jobs:
         mkdir pocl-build
         cd pocl-build
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:STRING="clang++" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
         ninja
       shell: cmd
+
+    - name: Build pocl
+      if: matrix.os == 'macos-10.15'
+      run: |
+        cd ..
+        mkdir pocl-build
+        cd pocl-build
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DCMAKE_CXX_FLAGS:STRING="-I/usr/local/opt/llvm/include -L/usr/local/opt/llvm/lib" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
+        ninja
 
     - name: Build OpenCL-ICD-Loader
       if: matrix.os != 'windows-2019'
