@@ -131,10 +131,11 @@ jobs:
         cd ..
         mkdir pocl-build
         cd pocl-build
-        find /usr -name "llvm-config"
+        # /usr/local/Cellar/llvm/12.0.0_1/bin/llvm-config
+        # /usr/local/Cellar/llvm/12.0.0_1/Toolchains/LLVM12.0.0.xctoolchain/usr/bin/llvm-config
         export LDFLAGS="-L/usr/local/opt/llvm/lib"
         export CPPFLAGS="-I/usr/local/opt/llvm/include"
-        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DWITH_LLVM_CONFIG:FILEPATH=/usr/local/Cellar/llvm/12.0.0_1/bin/llvm-config -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
         ninja
 
     - name: Build OpenCL-ICD-Loader
