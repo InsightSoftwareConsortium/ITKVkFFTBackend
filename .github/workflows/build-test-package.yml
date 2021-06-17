@@ -53,7 +53,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install ninja
-        python -m pip install libclang
 
     - name: Get specific version of CMake, Ninja
       uses: lukka/get-cmake@v3.18.3
@@ -74,12 +73,6 @@ jobs:
         chmod u+x LLVM-11.0.0-win64.exe
         LLVM-11.0.0-win64.exe
       shell: cmd
-
-    - name: Get LLVM and clang
-      if: matrix.os == 'macos-10.15'
-      run: |
-        brew link llvm --force
-      shell: bash
 
     - name: Download POCL
       shell: bash
@@ -138,7 +131,10 @@ jobs:
         cd ..
         mkdir pocl-build
         cd pocl-build
-        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DCMAKE_CXX_FLAGS:STRING="-I/usr/local/opt/llvm/include -L/usr/local/opt/llvm/lib" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
+        find /usr -name "llvm-config"
+        export LDFLAGS="-L/usr/local/opt/llvm/lib"
+        export CPPFLAGS="-I/usr/local/opt/llvm/include"
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
         ninja
 
     - name: Build OpenCL-ICD-Loader
