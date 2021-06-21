@@ -135,6 +135,8 @@ jobs:
         export CPPFLAGS="-I/usr/local/opt/llvm/include"
         echo 'find /usr -name "hwloc.h"'
         sudo find /usr -name "hwloc.h"
+        echo 'find / -name "hwloc.h"'
+        sudo find / -name "hwloc.h"
         cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DWITH_LLVM_CONFIG:FILEPATH=/usr/local/Cellar/llvm/12.0.0_1/bin/llvm-config -DENABLE_HWLOC:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
         ninja
 
