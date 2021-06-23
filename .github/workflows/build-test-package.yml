@@ -57,7 +57,7 @@ jobs:
     - name: Get specific version of CMake, Ninja
       uses: lukka/get-cmake@v3.18.3
 
-    - name: Get LLVM and clang
+    - name: Install LLVM and clang
       if: matrix.os == 'ubuntu-18.04'
       run: |
         curl -L https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
@@ -66,7 +66,7 @@ jobs:
         sudo apt install clang-format clang-tidy clang-tools clang libc++-dev libc++1 libc++abi-dev libc++abi1 libclang-dev libclang1 libomp-dev libomp5 lld lldb llvm-dev llvm-runtime llvm
       shell: bash
 
-    - name: Get LLVM and clang
+    - name: Install LLVM and clang
       if: matrix.os == 'windows-2019'
       run: |
         curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.0/LLVM-11.0.0-win64.exe -O
@@ -128,15 +128,15 @@ jobs:
     - name: Build pocl
       if: matrix.os == 'macos-10.15'
       run: |
+        echo 'brew install hwloc'
+        brew install hwloc
+        echo 'find /usr -name "hwloc.h"'
+        sudo find /usr -name "hwloc.h"
         cd ..
         mkdir pocl-build
         cd pocl-build
         export LDFLAGS="-L/usr/local/opt/llvm/lib"
         export CPPFLAGS="-I/usr/local/opt/llvm/include"
-        echo 'find /usr -name "hwloc.h"'
-        sudo find /usr -name "hwloc.h"
-        echo 'find / -name "hwloc.h"'
-        sudo find / -name "hwloc.h"
         cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DWITH_LLVM_CONFIG:FILEPATH=/usr/local/Cellar/llvm/12.0.0_1/bin/llvm-config -DENABLE_HWLOC:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
         ninja
 
