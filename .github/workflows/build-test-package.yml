@@ -74,6 +74,12 @@ jobs:
         LLVM-11.0.0-win64.exe
       shell: cmd
 
+    - name: Install LLVM and clang
+      if: matrix.os == 'macos-10.15'
+      run: |
+        brew install llvm hwloc
+      shell: bash
+
     - name: Download POCL
       shell: bash
       run: |
@@ -128,12 +134,14 @@ jobs:
     - name: Build pocl
       if: matrix.os == 'macos-10.15'
       run: |
-        echo 'brew install hwloc'
-        brew install hwloc
         echo 'find /usr -name "hwloc.h"'
         sudo  find /usr -name "hwloc.h"
         echo 'find /usr -name "libOpenCL.so*"'
         sudo  find /usr -name "libOpenCL.so*"
+        echo ls /usr/local/opt/llvm/lib
+        ls /usr/local/opt/llvm/lib
+        echo ls /usr/local/opt/llvm/include
+        ls /usr/local/opt/llvm/include
         cd ..
         mkdir pocl-build
         cd pocl-build
