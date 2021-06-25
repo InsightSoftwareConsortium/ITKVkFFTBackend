@@ -131,7 +131,9 @@ jobs:
         echo 'brew install hwloc'
         brew install hwloc
         echo 'find /usr -name "hwloc.h"'
-        sudo find /usr -name "hwloc.h"
+        sudo  find /usr -name "hwloc.h"
+        echo 'find /usr -name "libOpenCL.so*"'
+        sudo  find /usr -name "libOpenCL.so*"
         cd ..
         mkdir pocl-build
         cd pocl-build
