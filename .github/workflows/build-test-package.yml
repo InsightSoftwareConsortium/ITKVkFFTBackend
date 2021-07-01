@@ -155,10 +155,10 @@ jobs:
     - name: Build pocl
       if: matrix.os == 'macos-10.15'
       run: |
-        echo 'find ../ /usr/ -name "hwloc.h"'
-        sudo  find ../ /usr/ -name "hwloc.h"
-        echo 'find ../ /usr/ -name "libOpenCL*"'
-        sudo  find ../ /usr/ -name "libOpenCL*"
+        echo 'find .. /usr -name "hwloc.h"'
+        sudo  find .. /usr -name "hwloc.h"
+        echo 'find .. /usr -name "libOpenCL*"'
+        sudo  find .. /usr -name "libOpenCL*"
         cd ..
         mkdir pocl-build
         cd pocl-build
