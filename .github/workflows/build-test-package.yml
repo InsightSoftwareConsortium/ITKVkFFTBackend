@@ -87,7 +87,7 @@ jobs:
         cd ..
         git clone https://github.com/pocl/pocl
         cd pocl
-        git checkout ${{ matrix.pocl-git-tag }}
+        # git checkout ${{ matrix.pocl-git-tag }}
 
     - name: Download OpenCL-ICD-Loader
       shell: bash
