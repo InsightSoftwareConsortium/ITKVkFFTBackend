@@ -371,8 +371,7 @@ VkCommon::PerformFFT()
     // Compute complex conjugates for the R2FullH forward computation
     switch (m_VkParameters.P)
     {
-      case PrecisionEnum::FLOAT:
-      {
+      case PrecisionEnum::FLOAT: {
         using ComplexType = std::complex<float>;
         ComplexType * const outputCPUFloat{ reinterpret_cast<ComplexType *>(m_VkParameters.outputCPUBuffer) };
         for (uint64_t z = 0; z < m_VkFFTConfiguration.size[2]; ++z)
@@ -390,8 +389,7 @@ VkCommon::PerformFFT()
         }
       }
       break;
-      case PrecisionEnum::DOUBLE:
-      {
+      case PrecisionEnum::DOUBLE: {
         using ComplexType = std::complex<double>;
         ComplexType * const outputCPUDouble{ reinterpret_cast<ComplexType *>(m_VkParameters.outputCPUBuffer) };
         for (uint64_t z = 0; z < m_VkFFTConfiguration.size[2]; ++z)
