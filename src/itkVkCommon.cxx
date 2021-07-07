@@ -70,8 +70,7 @@ VkCommon::ConfigureBackend()
     return VKFFT_ERROR_FAILED_TO_INITIALIZE;
   }
   std::unique_ptr<cl_platform_id[]> platformsArray{ std::make_unique<cl_platform_id[]>(numPlatforms) };
-  // std::unique_ptr<cl_platform_id[]> platformsArray{ new cl_platform_id[numPlatforms] };
-  cl_platform_id * platforms{ &platformsArray[0] };
+  cl_platform_id *                  platforms{ &platformsArray[0] };
   if (!platforms)
     return VKFFT_ERROR_MALLOC_FAILED;
   resCL = clGetPlatformIDs(numPlatforms, platforms, nullptr);
@@ -86,8 +85,7 @@ VkCommon::ConfigureBackend()
     cl_uint numDevices;
     resCL = clGetDeviceIDs(platforms[j], CL_DEVICE_TYPE_ALL, 0, nullptr, &numDevices);
     std::unique_ptr<cl_device_id[]> deviceListArray{ std::make_unique<cl_device_id[]>(numDevices) };
-    // std::unique_ptr<cl_device_id[]> deviceListArray{ new cl_device_id[numDevices] };
-    cl_device_id * deviceList{ &deviceListArray[0] };
+    cl_device_id *                  deviceList{ &deviceListArray[0] };
     if (!deviceList)
       return VKFFT_ERROR_MALLOC_FAILED;
     resCL = clGetDeviceIDs(platforms[j], CL_DEVICE_TYPE_ALL, numDevices, deviceList, nullptr);

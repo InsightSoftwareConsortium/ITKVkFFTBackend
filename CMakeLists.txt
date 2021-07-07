@@ -24,14 +24,6 @@ set(VkFFTBackend_SYSTEM_INCLUDE_DIRS ${OpenCL_INCLUDE_DIRS})
 get_filename_component(OpenCL_LIB_DIR ${OpenCL_LIBRARY} DIRECTORY)
 set(VkFFTBackend_SYSTEM_LIBRARY_DIRS ${OpenCL_LIB_DIR})
 
-message(STATUS "==== Show all variables (CMakeLists.txt begin) ===")
-get_cmake_property(_variableNames VARIABLES)
-list (SORT _variableNames)
-foreach (_variableName ${_variableNames})
-    message(STATUS "${_variableName}=${${_variableName}}")
-endforeach()
-message(STATUS "==== Show all variables (CMakeLists.txt end) ===")
-
 ## VkFFT dependency
 include(FetchContent)
 set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
