@@ -18,7 +18,7 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "v5.2.0"
+            itk-git-tag: "c693dbc830859ea10d573301f075e121a4c6c581"
             cmake-build-type: "MinSizeRel"
           - os: windows-2019
             c-compiler: "cl.exe"
@@ -28,7 +28,7 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "v5.2.0"
+            itk-git-tag: "c693dbc830859ea10d573301f075e121a4c6c581"
             cmake-build-type: "Release"
           - os: macos-10.15
             c-compiler: "clang"
@@ -38,7 +38,7 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "v5.2.0"
+            itk-git-tag: "c693dbc830859ea10d573301f075e121a4c6c581"
             cmake-build-type: "MinSizeRel"
 
     steps:
