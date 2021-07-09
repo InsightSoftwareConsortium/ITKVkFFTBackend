@@ -135,6 +135,8 @@ jobs:
     - name: Build pocl
       if: matrix.os == 'ubuntu-18.04'
       run: |
+        echo 'find /usr -name "*libclang-cpp*"'
+        sudo  find /usr -name "*libclang-cpp*"
         cd ..
         mkdir pocl-build
         cd pocl-build
