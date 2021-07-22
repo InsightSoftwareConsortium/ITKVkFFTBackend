@@ -73,8 +73,6 @@ jobs:
         git clone https://github.com/llvm/llvm-project.git
         mkdir -p llvm-project-build
         cd llvm-project-build
-        export CC=cl
-        export CXX=cl
         cmake -DLLVM_ENABLE_PROJECTS=clang -GNinja ../llvm-project/llvm
         cmake --build .
         cmake --build . --target install
