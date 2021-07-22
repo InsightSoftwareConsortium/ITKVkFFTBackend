@@ -112,11 +112,21 @@ jobs:
         cd ITK
         git checkout ${{ matrix.itk-git-tag }}
 
+    - name: Find pocl dependencies
+      if: matrix.os != 'windows-2019'
+      run: |
+        echo 'find .. /usr -name "*libclang-cpp*"'
+        sudo  find .. /usr -name "*libclang-cpp*"
+        echo 'find .. /usr -name "hwloc.h"'
+        sudo  find .. /usr -name "hwloc.h"
+        echo 'find .. /usr -name "libOpenCL*"'
+        sudo  find .. /usr -name "libOpenCL*"
+        echo 'find .. /usr -name "llvm-config"'
+        sudo  find .. /usr -name "llvm-config"
+
     - name: Build pocl
       if: matrix.os == 'ubuntu-18.04'
       run: |
-        echo 'find /usr -name "*libclang-cpp*"'
-        sudo  find /usr -name "*libclang-cpp*"
         cd ..
         mkdir pocl-build
         cd pocl-build
@@ -137,16 +147,12 @@ jobs:
     - name: Build pocl
       if: matrix.os == 'macos-10.15'
       run: |
-        echo 'find .. /usr -name "hwloc.h"'
-        sudo  find .. /usr -name "hwloc.h"
-        echo 'find .. /usr -name "libOpenCL*"'
-        sudo  find .. /usr -name "libOpenCL*"
         cd ..
         mkdir pocl-build
         cd pocl-build
         export LDFLAGS="-L/usr/local/opt/llvm/lib -L../OpenCL-ICD-Loader-build"
         export CPPFLAGS="-I/usr/local/opt/llvm/include -I../OpenCL-ICD-Loader-build"
-        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DWITH_LLVM_CONFIG:FILEPATH=/usr/local/Cellar/llvm/12.0.0_1/bin/llvm-config -DENABLE_HWLOC:BOOL=ON -DENABLE_SPIR:BOOL=OFF -DINSTALL_OPENCL_HEADERS:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DWITH_LLVM_CONFIG:FILEPATH="$(find /usr/local/Cellar/llvm/*/bin -name llvm-config)" -DENABLE_HWLOC:BOOL=ON -DENABLE_SPIR:BOOL=OFF -DINSTALL_OPENCL_HEADERS:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
         sudo cmake --build . --target install
 
     - name: Build OpenCL-ICD-Loader
