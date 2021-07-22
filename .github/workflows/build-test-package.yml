@@ -69,10 +69,16 @@ jobs:
     - name: Install LLVM and clang
       if: matrix.os == 'windows-2019'
       run: |
-        curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe -O
-        chmod u+x LLVM-11.0.1-win64.exe
-        LLVM-11.0.1-win64.exe
-      shell: cmd
+        cd ..
+        git clone https://github.com/llvm/llvm-project.git
+        mkdir -p llvm-project-build
+        cd llvm-project-build
+        export CC=cl
+        export CXX=cl
+        cmake -DLLVM_ENABLE_PROJECTS=clang -GNinja ../llvm-project/llvm
+        cmake --build .
+        cmake --build . --target install
+      shell: bash
 
     - name: Install LLVM and clang
       if: matrix.os == 'macos-10.15'
@@ -87,7 +93,7 @@ jobs:
         cd ..
         git clone https://github.com/pocl/pocl
         cd pocl
-        # git checkout ${{ matrix.pocl-git-tag }}
+        git checkout ${{ matrix.pocl-git-tag }}
 
     - name: Download OpenCL-ICD-Loader
       shell: bash
