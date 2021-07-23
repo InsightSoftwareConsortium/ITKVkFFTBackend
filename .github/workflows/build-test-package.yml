@@ -85,16 +85,23 @@ jobs:
         brew install hwloc clinfo
       shell: bash
 
-    - name: Download POCL
+    - name: Download OpenCL-SDK
+      if: matrix.os == 'macos-10.15'
+      run: |
+        cd ..
+        git clone --recursive https://github.com/KhronosGroup/OpenCL-SDK.git
+        cd OpenCL-SDK
       shell: bash
+
+    - name: Download POCL
       run: |
         cd ..
         git clone https://github.com/pocl/pocl
         cd pocl
         git checkout ${{ matrix.pocl-git-tag }}
+      shell: bash
 
     - name: Download OpenCL-ICD-Loader
-      shell: bash
       run: |
         cd ..
         git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
@@ -108,6 +115,7 @@ jobs:
         popd
         cp -r OpenCL-Headers/CL ./
         popd
+      shell: bash
 
     - name: Download ITK
       run: |
@@ -115,6 +123,16 @@ jobs:
         git clone https://github.com/InsightSoftwareConsortium/ITK.git
         cd ITK
         git checkout ${{ matrix.itk-git-tag }}
+
+    - name: Build OpenCL-SDK
+      if: matrix.os == 'macos-10.15'
+      run: |
+        cd ..
+        mkdir OpenCL-SDK-build
+        cd OpenCL-SDK-build
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../OpenCL-SDK
+        sudo cmake --build . --target install
+      shell: bash
 
     - name: Find pocl dependencies
       if: matrix.os != 'windows-2019'
@@ -154,8 +172,8 @@ jobs:
         cd ..
         mkdir pocl-build
         cd pocl-build
-        export LDFLAGS="-L/usr/local/opt/llvm/lib -L../OpenCL-ICD-Loader-build"
-        export CPPFLAGS="-I/usr/local/opt/llvm/include -I../OpenCL-ICD-Loader-build"
+        export LDFLAGS="-L/usr/local/opt/llvm/lib"
+        export CPPFLAGS="-I/usr/local/opt/llvm/include"
         cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DWITH_LLVM_CONFIG:FILEPATH="$(find /usr/local/Cellar/llvm/*/bin -name llvm-config)" -DENABLE_HWLOC:BOOL=ON -DENABLE_SPIR:BOOL=OFF -DINSTALL_OPENCL_HEADERS:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
         sudo cmake --build . --target install
 
@@ -206,7 +224,6 @@ jobs:
         curl -L https://raw.githubusercontent.com/InsightSoftwareConsortium/ITK/dashboard/itk_common.cmake -O
 
     - name: Configure CTest script
-      shell: bash
       run: |
         operating_system="${{ matrix.os }}"
         cat > dashboard.cmake << EOF
@@ -256,6 +273,7 @@ jobs:
         include(\${CTEST_SCRIPT_DIRECTORY}/itk_common.cmake)
         EOF
         cat dashboard.cmake
+      shell: bash
 
     - name: Build and test
       if: matrix.os != 'windows-2019'
@@ -371,7 +389,6 @@ jobs:
         iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/scikit-build/scikit-ci-addons/master/windows/install-python.ps1'))
 
     - name: 'Fetch build dependencies'
-      shell: bash
       run: |
         mv im ../../
         cd ../../im
@@ -381,9 +398,9 @@ jobs:
         7z x doxygen-1.8.11.windows.bin.zip -o/c/P/doxygen -aoa -r
         curl -L "https://data.kitware.com/api/v1/file/5bbf87ba8d777f06b91f27d6/download/grep-win.zip" -o "grep-win.zip"
         7z x grep-win.zip -o/c/P/grep -aoa -r
+      shell: bash
 
     - name: 'Build 🐍 Python 📦 package'
-      shell: cmd
       run: |
         cd ../../im
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
@@ -391,6 +408,7 @@ jobs:
         set CC=cl.exe
         set CXX=cl.exe
         C:\Python3${{ matrix.python-version-minor }}-x64\python.exe C:\P\IPP\scripts\windows_build_module_wheels.py --py-envs "3${{ matrix.python-version-minor }}-x64" --no-cleanup
+      shell: cmd
 
     - name: Publish Python package as GitHub Artifact
       uses: actions/upload-artifact@v1
