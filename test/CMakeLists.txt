@@ -13,19 +13,19 @@ CreateTestDriver(VkFFTBackend
   "${VkFFTBackendTests}"
   )
 
-itk_add_test(NAME itkVkComplexToComplexFFTImageFilterTest
-  COMMAND VkFFTBackendTestDriver
-    --compare
-    DATA{Baseline/itkVkComplexToComplexFFTImageFilterTestOutput.mha}
-    ${ITK_TEST_OUTPUT_DIR}/itkVkComplexToComplexFFTImageFilterTestOutput.mha
-  itkVkComplexToComplexFFTImageFilterTest
-    ${ITK_TEST_OUTPUT_DIR}/itkVkComplexToComplexFFTImageFilterTestOutput.mha
-  )
+# itk_add_test(NAME itkVkComplexToComplexFFTImageFilterTest
+#   COMMAND VkFFTBackendTestDriver
+#     --compare
+#     DATA{Baseline/itkVkComplexToComplexFFTImageFilterTestOutput.mha}
+#     ${ITK_TEST_OUTPUT_DIR}/itkVkComplexToComplexFFTImageFilterTestOutput.mha
+#   itkVkComplexToComplexFFTImageFilterTest
+#     ${ITK_TEST_OUTPUT_DIR}/itkVkComplexToComplexFFTImageFilterTestOutput.mha
+#   )
 
-itk_add_test(NAME itkVkForwardInverseFFTImageFilterTest
-  COMMAND VkFFTBackendTestDriver itkVkForwardInverseFFTImageFilterTest
-  )
+# itk_add_test(NAME itkVkForwardInverseFFTImageFilterTest
+#   COMMAND VkFFTBackendTestDriver itkVkForwardInverseFFTImageFilterTest
+#   )
 
-itk_add_test(NAME itkVkHalfHermitianFFTImageFilterTest
-  COMMAND VkFFTBackendTestDriver itkVkHalfHermitianFFTImageFilterTest
-  )
+# itk_add_test(NAME itkVkHalfHermitianFFTImageFilterTest
+#   COMMAND VkFFTBackendTestDriver itkVkHalfHermitianFFTImageFilterTest
+#   )
