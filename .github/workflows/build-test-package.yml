@@ -174,8 +174,8 @@ jobs:
         cd ..
         mkdir pocl-build
         cd pocl-build
-        export LDFLAGS="-L/usr/local/opt/llvm/lib"
-        export CPPFLAGS="-I/usr/local/opt/llvm/include"
+        export LDFLAGS="-L/usr/local/opt/llvm/lib -L../OpenCL-SDK/install/lib"
+        export CPPFLAGS="-I/usr/local/opt/llvm/include -I../OpenCL-SDK/external/OpenCL-CLHPP/include"
         cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DC_LIBFILE_clang-cpp:FILEPATH="$(which clang++)" -DWITH_LLVM_CONFIG:FILEPATH="$(find /usr/local/Cellar/llvm/*/bin -name llvm-config)" -DENABLE_HWLOC:BOOL=ON -DENABLE_SPIR:BOOL=OFF -DINSTALL_OPENCL_HEADERS:BOOL=ON -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../pocl
         sudo cmake --build . --target install
 
