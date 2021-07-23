@@ -134,7 +134,7 @@ jobs:
         sudo cmake --build . --target install
       shell: bash
 
-    - name: Find pocl dependencies
+    - name: Show the locations of pocl dependencies
       if: matrix.os != 'windows-2019'
       run: |
         echo 'find .. /usr -name "*libclang-cpp*"'
@@ -143,6 +143,8 @@ jobs:
         sudo  find .. /usr -name "hwloc.h"
         echo 'find .. /usr -name "libOpenCL*"'
         sudo  find .. /usr -name "libOpenCL*"
+        echo 'find .. /usr -name "opencl.hpp"'
+        sudo  find .. /usr -name "opencl.hpp"
         echo 'find .. /usr -name "llvm-config"'
         sudo  find .. /usr -name "llvm-config"
 
