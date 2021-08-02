@@ -49,9 +49,11 @@ jobs:
       uses: lukka/get-cmake@v3.18.3
 
     - name: Install pocl
-      if: matrix.os == 'ubuntu-18.04'
+      if: matrix.os != 'windows-2019'
       run: |
-        sudo apt install -y pocl-opencl-icd
+        sudo conda config --add channels conda-forge
+        sudo conda config --set channel_priority strict
+        sudo conda install -c conda-forge pocl
       shell: bash
 
     - name: Download ITK
