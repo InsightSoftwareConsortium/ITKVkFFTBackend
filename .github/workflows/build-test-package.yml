@@ -13,6 +13,8 @@ jobs:
           - os: ubuntu-18.04
             c-compiler: "gcc"
             cxx-compiler: "g++"
+            opencl-icd-loader-git-tag: "v2021.04.29"
+            opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
             itk-git-tag: "c693dbc830859ea10d573301f075e121a4c6c581"
@@ -20,6 +22,8 @@ jobs:
           - os: windows-2019
             c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
+            opencl-icd-loader-git-tag: "v2021.04.29"
+            opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
             itk-git-tag: "c693dbc830859ea10d573301f075e121a4c6c581"
@@ -27,6 +31,8 @@ jobs:
           - os: macos-10.15
             c-compiler: "clang"
             cxx-compiler: "clang++"
+            opencl-icd-loader-git-tag: "v2021.04.29"
+            opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
             itk-git-tag: "c693dbc830859ea10d573301f075e121a4c6c581"
@@ -48,6 +54,30 @@ jobs:
     - name: Get specific version of CMake, Ninja
       uses: lukka/get-cmake@v3.18.3
 
+    - name: Download OpenCL-SDK
+      if: matrix.os == 'macos-10.15'
+      run: |
+        cd ..
+        git clone --recursive https://github.com/KhronosGroup/OpenCL-SDK.git
+        cd OpenCL-SDK
+      shell: bash
+
+    - name: Download OpenCL-ICD-Loader
+      run: |
+        cd ..
+        git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
+        pushd OpenCL-ICD-Loader
+        git checkout ${{ matrix.opencl-icd-loader-git-tag }}
+        popd
+        pushd OpenCL-ICD-Loader/inc
+        git clone https://github.com/KhronosGroup/OpenCL-Headers
+        pushd OpenCL-Headers
+        git checkout ${{ matrix.opencl-headers-git-tag }}
+        popd
+        cp -r OpenCL-Headers/CL ./
+        popd
+      shell: bash
+
     - name: Install pocl
       if: matrix.os != 'windows-2019'
       run: |
@@ -62,6 +92,36 @@ jobs:
         git clone https://github.com/InsightSoftwareConsortium/ITK.git
         cd ITK
         git checkout ${{ matrix.itk-git-tag }}
+
+    - name: Build OpenCL-SDK
+      if: matrix.os == 'macos-10.15'
+      run: |
+        cd ..
+        mkdir OpenCL-SDK-build
+        cd OpenCL-SDK-build
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../OpenCL-SDK
+        sudo cmake --build . --target install
+      shell: bash
+
+    - name: Build OpenCL-ICD-Loader
+      if: matrix.os != 'windows-2019'
+      run: |
+        cd ..
+        mkdir OpenCL-ICD-Loader-build
+        cd OpenCL-ICD-Loader-build
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -DBUILD_TESTING:BOOL=OFF -GNinja ../OpenCL-ICD-Loader
+        sudo cmake --build . --target install
+
+    - name: Build OpenCL-ICD-Loader
+      if: matrix.os == 'windows-2019'
+      run: |
+        cd ..
+        mkdir OpenCL-ICD-Loader-build
+        cd OpenCL-ICD-Loader-build
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -DBUILD_TESTING:BOOL=OFF -GNinja ../OpenCL-ICD-Loader
+        cmake --build . --target install
+      shell: cmd
 
     - name: Build ITK
       if: matrix.os != 'windows-2019'
