@@ -15,27 +15,28 @@
  *  limitations under the License.
  *
  *=========================================================================*/
+#ifndef itkVkHalfHermitianToRealInverseFFTImageFilter_hxx
+#define itkVkHalfHermitianToRealInverseFFTImageFilter_hxx
 
-#ifndef itkVkComplexToComplexFFTImageFilter_hxx
-#define itkVkComplexToComplexFFTImageFilter_hxx
-
-#include "itkVkComplexToComplexFFTImageFilter.h"
-#include "vkFFT.h"
-#include "itkImageRegionIterator.h"
+#include "itkHalfToFullHermitianImageFilter.h"
+#include "itkVkHalfHermitianToRealInverseFFTImageFilter.h"
 #include "itkIndent.h"
 #include "itkMetaDataObject.h"
 #include "itkProgressReporter.h"
+#include "itkMultiThreaderBase.h"
+
+#include <iostream>
 
 namespace itk
 {
 
-template <typename TImage>
-VkComplexToComplexFFTImageFilter<TImage>::VkComplexToComplexFFTImageFilter()
+template <typename TInputImage>
+VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::VkHalfHermitianToRealInverseFFTImageFilter()
 {}
 
-template <typename TImage>
+template <typename TInputImage>
 void
-VkComplexToComplexFFTImageFilter<TImage>::GenerateData()
+VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::GenerateData()
 {
   // get pointers to the input and output
   const InputImageType * const input{ this->GetInput() };
@@ -51,10 +52,10 @@ VkComplexToComplexFFTImageFilter<TImage>::GenerateData()
   const ProgressReporter progress(this, 0, 1);
 
   // allocate output buffer memory
-  output->SetBufferedRegion(output->GetRequestedRegion());
+  output->SetRegions(this->GetOutputRegion());
   output->Allocate();
 
-  const SizeType & inputSize{ input->GetLargestPossibleRegion().GetSize() };
+  const SizeType & outputSize{ output->GetBufferedRegion().GetSize() };
 
   const InputPixelType * const inputCPUBuffer{ input->GetBufferPointer() };
   OutputPixelType * const      outputCPUBuffer{ output->GetBufferPointer() };
@@ -62,7 +63,9 @@ VkComplexToComplexFFTImageFilter<TImage>::GenerateData()
   itkAssertOrThrowMacro(outputCPUBuffer != nullptr, "No CPU output buffer");
   const SizeValueType inBytes{ input->GetLargestPossibleRegion().GetNumberOfPixels() * sizeof(InputPixelType) };
   const SizeValueType outBytes{ output->GetLargestPossibleRegion().GetNumberOfPixels() * sizeof(OutputPixelType) };
-  itkAssertOrThrowMacro(inBytes == outBytes, "CPU input and output buffers are of different sizes.");
+
+  itkAssertOrThrowMacro(input->GetBufferedRegion().GetSize()[0] == outputSize[0] / 2 + 1,
+                        "Input image's first dimension must equal floor((output image's first dimension)/2) + 1");
 
   // Mostly use defaults for VkCommon::VkGPU
   typename VkCommon::VkGPU vkGPU;
@@ -71,25 +74,21 @@ VkComplexToComplexFFTImageFilter<TImage>::GenerateData()
   // Describe this filter in VkCommon::VkParameters
   typename VkCommon::VkParameters vkParameters;
   if (ImageDimension > 0)
-    vkParameters.X = inputSize[0];
+    vkParameters.X = outputSize[0];
   if (ImageDimension > 1)
-    vkParameters.Y = inputSize[1];
+    vkParameters.Y = outputSize[1];
   if (ImageDimension > 2)
-    vkParameters.Z = inputSize[2];
+    vkParameters.Z = outputSize[2];
   if (std::is_same<RealType, float>::value)
     vkParameters.P = VkCommon::PrecisionEnum::FLOAT;
   else if (std::is_same<RealType, double>::value)
     vkParameters.P = VkCommon::PrecisionEnum::DOUBLE;
   else
     itkAssertOrThrowMacro(false, "Unsupported type for real numbers.");
-  vkParameters.fft = VkCommon::FFTEnum::C2C;
+  vkParameters.fft = VkCommon::FFTEnum::R2HalfH;
   vkParameters.PSize = sizeof(RealType);
-  vkParameters.I = this->GetTransformDirection() == Superclass::TransformDirectionEnum::INVERSE
-                     ? VkCommon::DirectionEnum::INVERSE
-                     : VkCommon::DirectionEnum::FORWARD;
-  vkParameters.normalized = vkParameters.I == VkCommon::DirectionEnum::INVERSE
-                              ? VkCommon::NormalizationEnum::NORMALIZED
-                              : VkCommon::NormalizationEnum::UNNORMALIZED;
+  vkParameters.I = VkCommon::DirectionEnum::INVERSE;
+  vkParameters.normalized = VkCommon::NormalizationEnum::NORMALIZED;
 
   vkParameters.inputCPUBuffer = inputCPUBuffer;
   vkParameters.inputBufferBytes = inBytes;
@@ -105,21 +104,21 @@ VkComplexToComplexFFTImageFilter<TImage>::GenerateData()
   }
 }
 
-template <typename TImage>
+template <typename TInputImage>
 void
-VkComplexToComplexFFTImageFilter<TImage>::PrintSelf(std::ostream & os, Indent indent) const
+VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
   os << indent << "DeviceID: " << m_DeviceID << std::endl;
 }
 
-template <typename TImage>
-typename VkComplexToComplexFFTImageFilter<TImage>::SizeValueType
-VkComplexToComplexFFTImageFilter<TImage>::GetSizeGreatestPrimeFactor() const
+template <typename TInputImage>
+typename VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::SizeValueType
+VkHalfHermitianToRealInverseFFTImageFilter<TInputImage>::GetSizeGreatestPrimeFactor() const
 {
   return m_VkCommon.GetGreatestPrimeFactor();
 }
 
 } // end namespace itk
 
-#endif // _itkVkComplexToComplexFFTImageFilter_hxx
+#endif // _itkVkHalfHermitianToRealInverseFFTImageFilter_hxx

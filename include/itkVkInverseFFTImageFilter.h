@@ -15,22 +15,21 @@
  *  limitations under the License.
  *
  *=========================================================================*/
+#ifndef itkVkInverseFFTImageFilter_h
+#define itkVkInverseFFTImageFilter_h
 
-#ifndef itkVkComplexToComplexFFTImageFilter_h
-#define itkVkComplexToComplexFFTImageFilter_h
-
+#include "itkInverseFFTImageFilter.h"
 #include "itkVkCommon.h"
-#include "itkComplexToComplexFFTImageFilter.h"
 
 namespace itk
 {
-
 /**
- *\class VkComplexToComplexFFTImageFilter
+ *\class VkInverseFFTImageFilter
  *
- *  \brief Implements an API to enable the Fourier transform or the inverse
- *  Fourier transform of images with complex valued voxels to be computed using
- *  the VkFFT library.
+ * \brief Vk-based inverse Fast Fourier Transform.
+ *
+ * This filter computes the inverse Fourier transform of an image. The
+ * implementation is based on the VkFFT library.
  *
  * This filter is multithreaded and supports input images with sizes which are
  * divisible by primes up to 13.
@@ -39,25 +38,31 @@ namespace itk
  * \ingroup MultiThreaded
  * \ingroup ITKFFT
  * \ingroup VkFFTBackend
+ *
+ * \sa VkGlobalConfiguration
+ * \sa InverseFFTImageFilter
  */
-template <typename TImage>
-class VkComplexToComplexFFTImageFilter : public ComplexToComplexFFTImageFilter<TImage>
+template <typename TInputImage>
+class VkInverseFFTImageFilter
+  : public InverseFFTImageFilter<TInputImage,
+                                 Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>>
 {
 public:
-  ITK_DISALLOW_COPY_AND_MOVE(VkComplexToComplexFFTImageFilter);
+  ITK_DISALLOW_COPY_AND_MOVE(VkInverseFFTImageFilter);
 
-  using InputImageType = TImage;
-  using OutputImageType = TImage;
-  static_assert(std::is_same<typename TImage::PixelType, std::complex<float>>::value ||
-                  std::is_same<typename TImage::PixelType, std::complex<double>>::value,
+  using InputImageType = TInputImage;
+  using OutputImageType = Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>;
+  static_assert(std::is_same<typename TInputImage::PixelType, std::complex<float>>::value ||
+                  std::is_same<typename TInputImage::PixelType, std::complex<double>>::value,
                 "Unsupported pixel type");
-  static_assert(TImage::ImageDimension >= 1 && TImage::ImageDimension <= 3, "Unsupported image dimension");
+  static_assert(TInputImage::ImageDimension >= 1 && TInputImage::ImageDimension <= 3, "Unsupported image dimension");
 
   /** Standard class type aliases. */
-  using Self = VkComplexToComplexFFTImageFilter;
-  using Superclass = ComplexToComplexFFTImageFilter<TImage>;
+  using Self = VkInverseFFTImageFilter;
+  using Superclass = InverseFFTImageFilter<InputImageType, OutputImageType>;
   using Pointer = SmartPointer<Self>;
   using ConstPointer = SmartPointer<const Self>;
+
   using InputPixelType = typename InputImageType::PixelType;
   using OutputPixelType = typename OutputImageType::PixelType;
   using ComplexType = InputPixelType;
@@ -70,7 +75,7 @@ public:
   itkNewMacro(Self);
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro(VkComplexToComplexFFTImageFilter, ComplexToComplexFFTImageFilter);
+  itkTypeMacro(VkInverseFFTImageFilter, InverseFFTImageFilter);
 
   static constexpr unsigned int ImageDimension = InputImageType::ImageDimension;
 
@@ -78,11 +83,11 @@ public:
   itkSetMacro(DeviceID, uint64_t);
 
   SizeValueType
-  GetSizeGreatestPrimeFactor() const;
+  GetSizeGreatestPrimeFactor() const override;
 
 protected:
-  VkComplexToComplexFFTImageFilter();
-  ~VkComplexToComplexFFTImageFilter() override = default;
+  VkInverseFFTImageFilter();
+  ~VkInverseFFTImageFilter() override = default;
 
   void
   GenerateData() override;
@@ -99,7 +104,7 @@ private:
 } // namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
-#  include "itkVkComplexToComplexFFTImageFilter.hxx"
+#  include "itkVkInverseFFTImageFilter.hxx"
 #endif
 
-#endif // itkVkComplexToComplexFFTImageFilter_h
+#endif // itkVkInverseFFTImageFilter_h

@@ -15,22 +15,21 @@
  *  limitations under the License.
  *
  *=========================================================================*/
+#ifndef itkVkHalfHermitianToRealInverseFFTImageFilter_h
+#define itkVkHalfHermitianToRealInverseFFTImageFilter_h
 
-#ifndef itkVkComplexToComplexFFTImageFilter_h
-#define itkVkComplexToComplexFFTImageFilter_h
-
+#include "itkHalfHermitianToRealInverseFFTImageFilter.h"
 #include "itkVkCommon.h"
-#include "itkComplexToComplexFFTImageFilter.h"
 
 namespace itk
 {
-
 /**
- *\class VkComplexToComplexFFTImageFilter
+ *\class VkHalfHermitianToRealInverseFFTImageFilter
  *
- *  \brief Implements an API to enable the Fourier transform or the inverse
- *  Fourier transform of images with complex valued voxels to be computed using
- *  the VkFFT library.
+ * \brief Vk-based inverse Fast Fourier Transform.
+ *
+ * This filter computes the inverse Fourier transform of an image. The
+ * implementation is based on the VkFFT library.
  *
  * This filter is multithreaded and supports input images with sizes which are
  * divisible by primes up to 13.
@@ -39,25 +38,32 @@ namespace itk
  * \ingroup MultiThreaded
  * \ingroup ITKFFT
  * \ingroup VkFFTBackend
+ *
+ * \sa VkGlobalConfiguration
+ * \sa HalfHermitianToRealInverseFFTImageFilter
  */
-template <typename TImage>
-class VkComplexToComplexFFTImageFilter : public ComplexToComplexFFTImageFilter<TImage>
+template <typename TInputImage>
+class VkHalfHermitianToRealInverseFFTImageFilter
+  : public HalfHermitianToRealInverseFFTImageFilter<
+      TInputImage,
+      Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>>
 {
 public:
-  ITK_DISALLOW_COPY_AND_MOVE(VkComplexToComplexFFTImageFilter);
+  ITK_DISALLOW_COPY_AND_MOVE(VkHalfHermitianToRealInverseFFTImageFilter);
 
-  using InputImageType = TImage;
-  using OutputImageType = TImage;
-  static_assert(std::is_same<typename TImage::PixelType, std::complex<float>>::value ||
-                  std::is_same<typename TImage::PixelType, std::complex<double>>::value,
+  using InputImageType = TInputImage;
+  using OutputImageType = Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>;
+  static_assert(std::is_same<typename TInputImage::PixelType, std::complex<float>>::value ||
+                  std::is_same<typename TInputImage::PixelType, std::complex<double>>::value,
                 "Unsupported pixel type");
-  static_assert(TImage::ImageDimension >= 1 && TImage::ImageDimension <= 3, "Unsupported image dimension");
+  static_assert(TInputImage::ImageDimension >= 1 && TInputImage::ImageDimension <= 3, "Unsupported image dimension");
 
   /** Standard class type aliases. */
-  using Self = VkComplexToComplexFFTImageFilter;
-  using Superclass = ComplexToComplexFFTImageFilter<TImage>;
+  using Self = VkHalfHermitianToRealInverseFFTImageFilter;
+  using Superclass = HalfHermitianToRealInverseFFTImageFilter<InputImageType, OutputImageType>;
   using Pointer = SmartPointer<Self>;
   using ConstPointer = SmartPointer<const Self>;
+
   using InputPixelType = typename InputImageType::PixelType;
   using OutputPixelType = typename OutputImageType::PixelType;
   using ComplexType = InputPixelType;
@@ -70,19 +76,22 @@ public:
   itkNewMacro(Self);
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro(VkComplexToComplexFFTImageFilter, ComplexToComplexFFTImageFilter);
+  itkTypeMacro(VkHalfHermitianToRealInverseFFTImageFilter, HalfHermitianToRealInverseFFTImageFilter);
 
   static constexpr unsigned int ImageDimension = InputImageType::ImageDimension;
 
   itkGetMacro(DeviceID, uint64_t);
   itkSetMacro(DeviceID, uint64_t);
 
+  itkSetMacro(OutputRegion, OutputImageRegionType);
+  itkGetConstMacro(OutputRegion, OutputImageRegionType);
+
   SizeValueType
-  GetSizeGreatestPrimeFactor() const;
+  GetSizeGreatestPrimeFactor() const override;
 
 protected:
-  VkComplexToComplexFFTImageFilter();
-  ~VkComplexToComplexFFTImageFilter() override = default;
+  VkHalfHermitianToRealInverseFFTImageFilter();
+  ~VkHalfHermitianToRealInverseFFTImageFilter() override = default;
 
   void
   GenerateData() override;
@@ -93,13 +102,15 @@ protected:
 private:
   uint64_t m_DeviceID{ 0UL };
 
+  OutputImageRegionType m_OutputRegion;
+
   VkCommon m_VkCommon{};
 };
 
 } // namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
-#  include "itkVkComplexToComplexFFTImageFilter.hxx"
+#  include "itkVkHalfHermitianToRealInverseFFTImageFilter.hxx"
 #endif
 
-#endif // itkVkComplexToComplexFFTImageFilter_h
+#endif // itkVkHalfHermitianToRealInverseFFTImageFilter_h

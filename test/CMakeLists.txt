@@ -1,23 +1,18 @@
 itk_module_test()
 
 set(VkFFTBackendTests
-  itkMinimalStandardRandomVariateGeneratorTest.cxx
   itkVkComplexToComplexFFTImageFilterTest.cxx
+  itkVkForwardInverseFFTImageFilterTest.cxx
+  itkVkHalfHermitianFFTImageFilterTest.cxx
   )
 
 include_directories(${VkFFTBackend_INCLUDE_DIRS})
 
 CreateTestDriver(VkFFTBackend
-  "${VkFFTBackend-Test_LIBRARIES};${OpenCL_LIBS}"
+  "${VkFFTBackend-Test_LIBRARIES};${OpenCL_LIBRARY}"
   "${VkFFTBackendTests}"
-  # itkOpenCLTestHelper.cxx
   )
 
-itk_add_test(NAME itkMinimalStandardRandomVariateGeneratorTest
-  COMMAND VkFFTBackendTestDriver itkMinimalStandardRandomVariateGeneratorTest
-  )
-
-# Restore this test when underlying code is fixed.
 # itk_add_test(NAME itkVkComplexToComplexFFTImageFilterTest
 #   COMMAND VkFFTBackendTestDriver
 #     --compare
@@ -25,4 +20,12 @@ itk_add_test(NAME itkMinimalStandardRandomVariateGeneratorTest
 #     ${ITK_TEST_OUTPUT_DIR}/itkVkComplexToComplexFFTImageFilterTestOutput.mha
 #   itkVkComplexToComplexFFTImageFilterTest
 #     ${ITK_TEST_OUTPUT_DIR}/itkVkComplexToComplexFFTImageFilterTestOutput.mha
+#   )
+
+# itk_add_test(NAME itkVkForwardInverseFFTImageFilterTest
+#   COMMAND VkFFTBackendTestDriver itkVkForwardInverseFFTImageFilterTest
+#   )
+
+# itk_add_test(NAME itkVkHalfHermitianFFTImageFilterTest
+#   COMMAND VkFFTBackendTestDriver itkVkHalfHermitianFFTImageFilterTest
 #   )

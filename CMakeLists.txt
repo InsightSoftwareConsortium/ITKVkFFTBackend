@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 3.10.2)
+cmake_minimum_required(VERSION 3.16.3)
 project(VkFFTBackend)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 set(VkFFTBackend_LIBRARIES VkFFTBackend)
 
 if(NOT ITK_SOURCE_DIR)
@@ -18,6 +21,7 @@ if(NOT ITK_BINARY_DIR)
 endif()
 ")
 set(VkFFTBackend_SYSTEM_INCLUDE_DIRS ${OpenCL_INCLUDE_DIRS})
+get_filename_component(OpenCL_LIB_DIR ${OpenCL_LIBRARY} DIRECTORY)
 set(VkFFTBackend_SYSTEM_LIBRARY_DIRS ${OpenCL_LIB_DIR})
 
 ## VkFFT dependency
@@ -25,7 +29,7 @@ include(FetchContent)
 set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
 add_definitions(-DVKFFT_BACKEND=${VKFFT_BACKEND} -DCL_TARGET_OPENCL_VERSION=120)
 set(vulkan_GIT_REPOSITORY "https://github.com/DTolm/VkFFT") # original source
-set(vulkan_GIT_TAG        "6947846a53b8bfae390bb1ef03f84b2723b0a5b7")
+set(vulkan_GIT_TAG        "7402aeb0302fcacad09fe428bd7010ea21f00997")
 # set(vulkan_GIT_REPOSITORY "https://github.com/Leengit/VkFFT") # Kitware copy of original source
 # set(vulkan_GIT_TAG        "0c5ddfffe1af9ac96c21d4c38941f9b5481b73c3")
 FetchContent_Declare(
