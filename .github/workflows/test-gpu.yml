@@ -1,0 +1,131 @@
+name: Test GPU
+
+on: [pull_request]
+
+jobs:
+  build-test-gpu:
+    runs-on: [self-hosted, gpu]
+    strategy:
+      matrix:
+        include:
+          - opencl-icd-loader-git-tag: "v2021.04.29"
+            opencl-headers-git-tag: "v2021.04.29"
+            opencl-version: 120
+            vkfft-backend: 3
+            itk-git-tag: "c693dbc830859ea10d573301f075e121a4c6c581"
+            cmake-build-type: "MinSizeRel"
+            platform-name: "ubuntu-nvidia-gpu"
+            os: ubuntu-20.04
+        
+    steps:
+
+    - name: Check OpenCL Devices
+      run: |
+        clinfo
+        if [ $(clinfo | grep "Number of devices" | awk '{print $4}') == "0" ]; then echo "Could not find OpenCL devices" && exit 1; fi
+      shell: bash
+
+    - uses: actions/checkout@v2
+    
+    - name: Get specific version of CMake, Ninja
+      uses: lukka/get-cmake@v3.18.3
+    
+    - name: Download OpenCL-ICD-Loader
+      run: |
+        cd ..
+        git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
+        pushd OpenCL-ICD-Loader
+        git checkout ${{ matrix.opencl-icd-loader-git-tag }}
+        popd
+        pushd OpenCL-ICD-Loader/inc
+        git clone https://github.com/KhronosGroup/OpenCL-Headers
+        pushd OpenCL-Headers
+        git checkout ${{ matrix.opencl-headers-git-tag }}
+        popd
+        cp -r OpenCL-Headers/CL ./
+        popd
+      shell: bash
+      
+    - name: Download ITK
+      run: |
+        cd ..
+        git clone https://github.com/InsightSoftwareConsortium/ITK.git
+        cd ITK
+        git checkout ${{ matrix.itk-git-tag }}
+        
+    - name: Build OpenCL-ICD-Loader
+      run: |
+        cd ..
+        mkdir OpenCL-ICD-Loader-build
+        cd OpenCL-ICD-Loader-build
+        cmake -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -DBUILD_TESTING:BOOL=OFF -GNinja ../OpenCL-ICD-Loader
+        cmake --build .
+
+    - name: Build ITK
+      run: |
+        cd ..
+        mkdir ITK-build
+        cd ITK-build
+        cmake -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -DBUILD_TESTING:BOOL=OFF -GNinja ../ITK
+        ninja
+    
+    - name: Fetch CTest driver script
+      run: |
+        curl -L https://raw.githubusercontent.com/InsightSoftwareConsortium/ITK/dashboard/itk_common.cmake -O
+
+    - name: Configure CTest script
+      run: |
+        operating_system="${{ matrix.os }}"
+        platform_name="${{ matrix.platform-name }}"
+        cat > dashboard.cmake << EOF
+        set(CTEST_SITE "GitHubActions")
+        file(TO_CMAKE_PATH "\$ENV{GITHUB_WORKSPACE}/.." CTEST_DASHBOARD_ROOT)
+        file(TO_CMAKE_PATH "\$ENV{GITHUB_WORKSPACE}/" CTEST_SOURCE_DIRECTORY)
+        file(TO_CMAKE_PATH "\$ENV{GITHUB_WORKSPACE}/../build" CTEST_BINARY_DIRECTORY)
+        set(dashboard_source_name "${GITHUB_REPOSITORY}")
+        if(ENV{GITHUB_REF} MATCHES "master")
+          set(branch "-master")
+          set(dashboard_model "Continuous")
+        else()
+          set(branch "-${GITHUB_REF}")
+          set(dashboard_model "Experimental")
+        endif()
+        set(CTEST_BUILD_NAME "${GITHUB_REPOSITORY}-${platform_name}-\${branch}")
+        set(CTEST_UPDATE_VERSION_ONLY 1)
+        set(CTEST_TEST_ARGS \${CTEST_TEST_ARGS} PARALLEL_LEVEL \${PARALLEL_LEVEL})
+        set(CTEST_BUILD_CONFIGURATION "Release")
+        set(CTEST_CMAKE_GENERATOR "Ninja")
+        set(CTEST_CUSTOM_WARNING_EXCEPTION
+          \${CTEST_CUSTOM_WARNING_EXCEPTION}
+          # macOS Azure VM Warning
+          "ld: warning: text-based stub file"
+          )
+        set(dashboard_no_clean 1)
+        set(ENV{CC} ${{ matrix.c-compiler }})
+        set(ENV{CXX} ${{ matrix.cxx-compiler }})
+        if(WIN32)
+          set(ENV{PATH} "\${CTEST_DASHBOARD_ROOT}/ITK-build/bin;\$ENV{PATH}")
+        endif()
+        file(TO_CMAKE_PATH "\${CTEST_DASHBOARD_ROOT}/OpenCL-ICD-Loader/inc" OpenCL_INCLUDE_DIR)
+        find_library(OpenCL_LIBRARY OpenCL PATHS \${CTEST_DASHBOARD_ROOT}/OpenCL-ICD-Loader-build REQUIRED)
+        set(VKFFT_BACKEND ${{ matrix.vkfft-backend }} CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
+        set(dashboard_cache "
+        VKFFT_BACKEND=\${VKFFT_BACKEND}
+        CL_TARGET_OPENCL_VERSION=${{ matrix.opencl-version }}
+        OpenCL_INCLUDE_DIR:PATH=\${OpenCL_INCLUDE_DIR}
+        OpenCL_LIBRARY:FILEPATH=\${OpenCL_LIBRARY}
+        ITK_DIR:PATH=\${CTEST_DASHBOARD_ROOT}/ITK-build
+        BUILD_TESTING:BOOL=ON
+        ")
+        string(TIMESTAMP build_date "%Y-%m-%d")
+        message("CDash Build Identifier: \${build_date} \${CTEST_BUILD_NAME}")
+        message("CTEST_SITE = \${CTEST_SITE}")
+        message("dashboard_cache = \${dashboard_cache}")
+        include(\${CTEST_SCRIPT_DIRECTORY}/itk_common.cmake)
+        EOF
+        cat dashboard.cmake
+      shell: bash
+
+    - name: Build and test
+      run: |
+        ctest --output-on-failure -j 2 -V -S dashboard.cmake

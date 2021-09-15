@@ -3,7 +3,7 @@ name: Build, test, package
 on: [push,pull_request]
 
 jobs:
-  build-test-cxx:
+  build-cxx:
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 3
@@ -202,15 +202,15 @@ jobs:
     - name: Build and test
       if: matrix.os != 'windows-2019'
       run: |
-        ctest --output-on-failure -j 2 -V -S dashboard.cmake
+        ctest --output-on-failure -j 2 -V -S dashboard.cmake -R "VkFFTBackend"
 
     - name: Build and test
       if: matrix.os == 'windows-2019'
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        ctest --output-on-failure -j 2 -V -S dashboard.cmake
+        ctest --output-on-failure -j 2 -V -S dashboard.cmake -R "VkFFTBackend"
       shell: cmd
-
+      
   build-windows-python-packages:
     runs-on: windows-2019
     strategy:
