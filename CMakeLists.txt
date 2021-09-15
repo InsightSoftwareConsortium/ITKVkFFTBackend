@@ -64,3 +64,5 @@ else()
   set(ITK_DIR ${CMAKE_BINARY_DIR})
   itk_module_impl()
 endif()
+
+target_link_libraries(VkFFTBackend PUBLIC ${OpenCL_LIBRARY})
