@@ -35,7 +35,7 @@ fi
 
 # Build wheels
 mkdir -p dist
-DOCKER_ARGS="-e ELASTIX_USE_OPENCL=1 -v $(pwd)/dist:/work/dist/ -v $script_dir/../ITKPythonPackage:/ITKPythonPackage -v $(pwd)/tools:/tools -v $(pwd)/OpenCL-ICD-Loader/inc/CL:/usr/include/CL -v $(pwd)/OpenCL-ICD-Loader-build/libOpenCL.so.1.2:/usr/lib64/libOpenCL.so.1 -v $(pwd)/OpenCL-ICD-Loader-build/libOpenCL.so.1.2:/usr/lib64/libOpenCL.so"
+DOCKER_ARGS="-v $(pwd)/dist:/work/dist/ -v $script_dir/../ITKPythonPackage:/ITKPythonPackage -v $(pwd)/tools:/tools -v $(pwd)/OpenCL-ICD-Loader/inc/CL:/usr/include/CL -v $(pwd)/OpenCL-ICD-Loader-build/libOpenCL.so.1.2:/usr/lib64/libOpenCL.so.1 -v $(pwd)/OpenCL-ICD-Loader-build/libOpenCL.so.1.2:/usr/lib64/libOpenCL.so"
 /tmp/dockcross-manylinux-x64 \
   -a "$DOCKER_ARGS" \
   "/ITKPythonPackage/scripts/internal/manylinux-build-module-wheels.sh" "$@"
