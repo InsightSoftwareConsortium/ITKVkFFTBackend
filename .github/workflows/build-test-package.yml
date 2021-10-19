@@ -17,7 +17,7 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "c693dbc830859ea10d573301f075e121a4c6c581"
+            itk-git-tag: "b1a0a91614dc091f9a17c1e4727095c80e9c05ea"
             cmake-build-type: "MinSizeRel"
           - os: windows-2019
             c-compiler: "cl.exe"
@@ -26,7 +26,7 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "c693dbc830859ea10d573301f075e121a4c6c581"
+            itk-git-tag: "b1a0a91614dc091f9a17c1e4727095c80e9c05ea"
             cmake-build-type: "Release"
           - os: macos-10.15
             c-compiler: "clang"
@@ -35,7 +35,7 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "c693dbc830859ea10d573301f075e121a4c6c581"
+            itk-git-tag: "b1a0a91614dc091f9a17c1e4727095c80e9c05ea"
             cmake-build-type: "MinSizeRel"
 
     steps:
@@ -218,7 +218,7 @@ jobs:
       matrix:
         python-version-minor: [6, 7, 8, 9]
         include:
-          - itk-python-git-tag: "v5.2.0.post2"
+          - itk-python-git-tag: "v5.3rc01"
             c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
             opencl-icd-loader-git-tag: "v2021.04.29"
@@ -300,7 +300,7 @@ jobs:
       matrix:
         python-version: [36, 37, 38, 39]
         include:
-          - itk-python-git-tag: "v5.2.0.post2"
+          - itk-python-git-tag: "v5.3rc01"
 
     steps:
     - uses: actions/checkout@v2
@@ -332,7 +332,7 @@ jobs:
       max-parallel: 2
       matrix:
         include:
-          - itk-python-git-tag: "v5.2.0.post2"
+          - itk-python-git-tag: "v5.3rc01"
 
     steps:
     - uses: actions/checkout@v2
