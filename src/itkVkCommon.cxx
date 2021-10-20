@@ -143,6 +143,10 @@ VkCommon::ConfigureBackend()
   {
     m_VkFFTConfiguration.doublePrecision = 1;
   }
+  for (size_t dim = 0; dim < 3; ++dim)
+  {
+    m_VkFFTConfiguration.omitDimension[dim] = m_VkParameters.omitDimension[dim];
+  }
   // if (m_VkParameters.P == HALF)
   //   m_VkFFTConfiguration.halfPrecision = 1;
   m_VkFFTConfiguration.normalize = m_VkParameters.normalized == NormalizationEnum::NORMALIZED ? 1 : 0;
