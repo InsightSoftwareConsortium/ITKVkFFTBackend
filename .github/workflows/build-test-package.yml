@@ -216,7 +216,7 @@ jobs:
     strategy:
       max-parallel: 2
       matrix:
-        python-version-minor: [6, 7, 8, 9]
+        python-version-minor: [7, 8, 9]
         include:
           - itk-python-git-tag: "v5.3rc01"
             c-compiler: "cl.exe"
@@ -298,7 +298,7 @@ jobs:
     strategy:
       max-parallel: 2
       matrix:
-        python-version: [36, 37, 38, 39]
+        python-version: [37, 38, 39]
         include:
           - itk-python-git-tag: "v5.3rc01"
 
