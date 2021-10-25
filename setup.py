@@ -12,7 +12,7 @@ except ImportError:
 
 setup(
     name="itk-vkfft",
-    version="0.1.0",
+    version="0.1.1",
     author="Insight Software Consortium",
     author_email="itk+community@discourse.itk.org",
     packages=["itk"],
@@ -42,5 +42,5 @@ setup(
     license="Apache",
     keywords="ITK InsightToolkit",
     url=r"https://itk.org/",
-    install_requires=[r"itk>=5.2.0.post1"],
+    install_requires=[r"itk>=5.3rc01"],
 )
