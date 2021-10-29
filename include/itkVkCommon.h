@@ -63,9 +63,13 @@ public:
 
   struct VkParameters
   {
-    uint64_t      X = 0;                    // size of fastest varying dimension
-    uint64_t      Y = 1;                    // size of second-fastest varying dimension, if any, otherwise 1.
-    uint64_t      Z = 1;                    // size of third-fastest varying dimension, if any, otherwise 1.
+    uint64_t X = 0; // size of fastest varying dimension
+    uint64_t Y = 1; // size of second-fastest varying dimension, if any, otherwise 1.
+    uint64_t Z = 1; // size of third-fastest varying dimension, if any, otherwise 1.
+    uint64_t omitDimension[3] = { 0,
+                                  0,
+                                  0 }; // disable FFT for this dimension (0 - FFT enabled, 1 - FFT disabled). Default 0.
+                                       // Doesn't work for R2C dimension 0 for now. Doesn't work with convolutions.
     PrecisionEnum P = PrecisionEnum::FLOAT; // type for real numbers
     uint64_t      B = 1;                    // Number of batches -- always 1
     uint64_t      N = 1;                    // Number of redundant iterations, for benchmarking -- always 1.

@@ -21,6 +21,8 @@ itk_module(VkFFTBackend
   TEST_DEPENDS
     ITKTestKernel
     ITKMetaIO
+    ITKImageCompose
+    ITKImageIntensity
   DESCRIPTION
     "${DOCUMENTATION}"
   EXCLUDE_FROM_DEFAULT
