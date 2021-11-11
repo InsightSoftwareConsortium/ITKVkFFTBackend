@@ -1,0 +1,6 @@
+.vs/*
+dist/*
+example/data/*
+example/.ipynb_checkpoints/*
+out/*
+test/out/*
