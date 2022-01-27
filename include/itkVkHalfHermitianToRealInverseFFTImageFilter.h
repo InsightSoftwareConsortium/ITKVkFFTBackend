@@ -18,7 +18,9 @@
 #ifndef itkVkHalfHermitianToRealInverseFFTImageFilter_h
 #define itkVkHalfHermitianToRealInverseFFTImageFilter_h
 
+#include "itkFFTImageFilterFactory.h"
 #include "itkHalfHermitianToRealInverseFFTImageFilter.h"
+#include "itkImage.h"
 #include "itkVkCommon.h"
 
 namespace itk
@@ -42,19 +44,22 @@ namespace itk
  * \sa VkGlobalConfiguration
  * \sa HalfHermitianToRealInverseFFTImageFilter
  */
-template <typename TInputImage>
+template <typename TInputImage,
+          typename TOutputImage = Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>>
 class VkHalfHermitianToRealInverseFFTImageFilter
   : public HalfHermitianToRealInverseFFTImageFilter<
-      TInputImage,
-      Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>>
+      TInputImage, TOutputImage>
 {
 public:
   ITK_DISALLOW_COPY_AND_MOVE(VkHalfHermitianToRealInverseFFTImageFilter);
 
   using InputImageType = TInputImage;
-  using OutputImageType = Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>;
+  using OutputImageType = TOutputImage;
   static_assert(std::is_same<typename TInputImage::PixelType, std::complex<float>>::value ||
                   std::is_same<typename TInputImage::PixelType, std::complex<double>>::value,
+                "Unsupported pixel type");
+  static_assert(std::is_same<typename TOutputImage::PixelType, float>::value ||
+                  std::is_same<typename TOutputImage::PixelType, double>::value,
                 "Unsupported pixel type");
   static_assert(TInputImage::ImageDimension >= 1 && TInputImage::ImageDimension <= 3, "Unsupported image dimension");
 
@@ -105,6 +110,17 @@ private:
   OutputImageRegionType m_OutputRegion;
 
   VkCommon m_VkCommon{};
+};
+
+// Describe whether input/output are real- or complex-valued
+// for factory registration
+template <>
+struct FFTImageFilterTraits<VkHalfHermitianToRealInverseFFTImageFilter>
+{
+  template <typename TUnderlying>
+  using InputPixelType = std::complex<TUnderlying>;
+  template <typename TUnderlying>
+  using OutputPixelType = TUnderlying;
 };
 
 } // namespace itk

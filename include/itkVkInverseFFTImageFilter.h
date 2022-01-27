@@ -18,6 +18,8 @@
 #ifndef itkVkInverseFFTImageFilter_h
 #define itkVkInverseFFTImageFilter_h
 
+#include "itkFFTImageFilterFactory.h"
+#include "itkImage.h"
 #include "itkInverseFFTImageFilter.h"
 #include "itkVkCommon.h"
 
@@ -42,18 +44,22 @@ namespace itk
  * \sa VkGlobalConfiguration
  * \sa InverseFFTImageFilter
  */
-template <typename TInputImage>
-class VkInverseFFTImageFilter
-  : public InverseFFTImageFilter<TInputImage,
-                                 Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>>
+template <typename TInputImage,
+          typename TOutputImage = Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>>
+    class VkInverseFFTImageFilter
+  : public InverseFFTImageFilter<TInputImage,TOutputImage>
+                                 
 {
 public:
   ITK_DISALLOW_COPY_AND_MOVE(VkInverseFFTImageFilter);
 
   using InputImageType = TInputImage;
-  using OutputImageType = Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>;
+  using OutputImageType = TOutputImage;
   static_assert(std::is_same<typename TInputImage::PixelType, std::complex<float>>::value ||
                   std::is_same<typename TInputImage::PixelType, std::complex<double>>::value,
+                "Unsupported pixel type");
+  static_assert(std::is_same<typename TOutputImage::PixelType, float>::value ||
+                  std::is_same<typename TOutputImage::PixelType, double>::value,
                 "Unsupported pixel type");
   static_assert(TInputImage::ImageDimension >= 1 && TInputImage::ImageDimension <= 3, "Unsupported image dimension");
 
@@ -99,6 +105,17 @@ private:
   uint64_t m_DeviceID{ 0UL };
 
   VkCommon m_VkCommon{};
+};
+
+// Describe whether input/output are real- or complex-valued
+// for factory registration
+template <>
+struct FFTImageFilterTraits<VkInverseFFTImageFilter>
+{
+  template <typename TUnderlying>
+  using InputPixelType = std::complex<TUnderlying>;
+  template <typename TUnderlying>
+  using OutputPixelType = TUnderlying;
 };
 
 } // namespace itk

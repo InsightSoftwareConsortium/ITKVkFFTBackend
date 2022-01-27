@@ -1,4 +1,9 @@
 itk_wrap_class("itk::VkForwardFFTImageFilter" POINTER)
-  itk_wrap_image_filter(F 1 1;2;3)
-  itk_wrap_image_filter(D 1 1;2;3)
+  if(ITK_WRAP_COMPLEX_FLOAT)
+    itk_wrap_image_filter(F 1 1;2;3)
+  endif()
+
+  if(ITK_WRAP_COMPLEX_DOUBLE)
+    itk_wrap_image_filter(D 1 1;2;3)
+  endif()
 itk_end_wrap_class()

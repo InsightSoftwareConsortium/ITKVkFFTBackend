@@ -18,6 +18,8 @@
 #ifndef itkVkInverse1DFFTImageFilter_h
 #define itkVkInverse1DFFTImageFilter_h
 
+#include "itkFFTImageFilterFactory.h"
+#include "itkImage.h"
 #include "itkInverse1DFFTImageFilter.h"
 #include "itkVkCommon.h"
 
@@ -33,8 +35,8 @@ namespace itk
  *
  * This filter is multithreaded and by default supports input images with sizes which are
  * divisible by primes up to 13.
- * 
- * Execution on input images with sizes divisible by primes greater than 17 may succeed 
+ *
+ * Execution on input images with sizes divisible by primes greater than 17 may succeed
  * with a fallback on Bluestein's algorithm per VkFFT with a cost to performance and output precision.
  *
  * \ingroup FourierTransform
@@ -45,18 +47,20 @@ namespace itk
  * \sa VkGlobalConfiguration
  * \sa Inverse1DFFTImageFilter
  */
-template <typename TInputImage>
-class VkInverse1DFFTImageFilter
-  : public Inverse1DFFTImageFilter<TInputImage,
-                                 Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>>
+template <typename TInputImage,
+          typename TOutputImage = Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>>
+class VkInverse1DFFTImageFilter : public Inverse1DFFTImageFilter<TInputImage, TOutputImage>
 {
 public:
   ITK_DISALLOW_COPY_AND_MOVE(VkInverse1DFFTImageFilter);
 
   using InputImageType = TInputImage;
-  using OutputImageType = Image<typename TInputImage::PixelType::value_type, TInputImage::ImageDimension>;
+  using OutputImageType = TOutputImage;
   static_assert(std::is_same<typename TInputImage::PixelType, std::complex<float>>::value ||
                   std::is_same<typename TInputImage::PixelType, std::complex<double>>::value,
+                "Unsupported pixel type");
+  static_assert(std::is_same<typename TOutputImage::PixelType, float>::value ||
+                  std::is_same<typename TOutputImage::PixelType, double>::value,
                 "Unsupported pixel type");
   static_assert(TInputImage::ImageDimension >= 1 && TInputImage::ImageDimension <= 3, "Unsupported image dimension");
 
@@ -102,6 +106,17 @@ private:
   uint64_t m_DeviceID{ 0UL };
 
   VkCommon m_VkCommon{};
+};
+
+// Describe whether input/output are real- or complex-valued
+// for factory registration
+template <>
+struct FFTImageFilterTraits<VkInverse1DFFTImageFilter>
+{
+  template <typename TUnderlying>
+  using InputPixelType = std::complex<TUnderlying>;
+  template <typename TUnderlying>
+  using OutputPixelType = TUnderlying;
 };
 
 } // namespace itk

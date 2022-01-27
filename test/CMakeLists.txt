@@ -4,6 +4,7 @@ set(VkFFTBackendTests
   itkVkComplexToComplexFFTImageFilterTest.cxx
   itkVkComplexToComplex1DFFTImageFilterBaselineTest.cxx
   itkVkComplexToComplex1DFFTImageFilterSizesTest.cxx
+  itkVkFFTImageFilterFactoryTest.cxx
   itkVkForwardInverseFFTImageFilterTest.cxx
   itkVkForwardInverse1DFFTImageFilterTest.cxx
   itkVkForward1DFFTImageFilterBaselineTest.cxx
@@ -81,4 +82,9 @@ itk_add_test(NAME itkVkForwardInverse1DFFTImageFilterTest
 
  itk_add_test(NAME itkVkHalfHermitianFFTImageFilterTest
    COMMAND VkFFTBackendTestDriver itkVkHalfHermitianFFTImageFilterTest
+   )
+
+itk_add_test(NAME itkVkFFTImageFilterFactoryTest
+  COMMAND VkFFTBackendTestDriver
+  itkVkFFTImageFilterFactoryTest
    )

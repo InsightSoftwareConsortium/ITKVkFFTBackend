@@ -18,6 +18,8 @@
 #ifndef itkVkRealToHalfHermitianForwardFFTImageFilter_h
 #define itkVkRealToHalfHermitianForwardFFTImageFilter_h
 
+#include "itkFFTImageFilterFactory.h"
+#include "itkImage.h"
 #include "itkRealToHalfHermitianForwardFFTImageFilter.h"
 #include "itkVkCommon.h"
 
@@ -42,19 +44,21 @@ namespace itk
  * \sa VkGlobalConfiguration
  * \sa RealToHalfHermitianForwardFFTImageFilter
  */
-template <typename TInputImage>
+template <typename TInputImage,
+          typename TOutputImage = Image<std::complex<typename TInputImage::PixelType>, TInputImage::ImageDimension>>
 class VkRealToHalfHermitianForwardFFTImageFilter
-  : public RealToHalfHermitianForwardFFTImageFilter<
-      TInputImage,
-      Image<std::complex<typename TInputImage::PixelType>, TInputImage::ImageDimension>>
+  : public RealToHalfHermitianForwardFFTImageFilter<TInputImage, TOutputImage>
 {
 public:
   ITK_DISALLOW_COPY_AND_MOVE(VkRealToHalfHermitianForwardFFTImageFilter);
 
   using InputImageType = TInputImage;
-  using OutputImageType = Image<std::complex<typename TInputImage::PixelType>, TInputImage::ImageDimension>;
+  using OutputImageType = TOutputImage;
   static_assert(std::is_same<typename TInputImage::PixelType, float>::value ||
                   std::is_same<typename TInputImage::PixelType, double>::value,
+                "Unsupported pixel type");
+  static_assert(std::is_same<typename TOutputImage::PixelType, std::complex<float>>::value ||
+                  std::is_same<typename TOutputImage::PixelType, std::complex<double>>::value,
                 "Unsupported pixel type");
   static_assert(TInputImage::ImageDimension >= 1 && TInputImage::ImageDimension <= 3, "Unsupported image dimension");
 
@@ -101,6 +105,18 @@ private:
 
   VkCommon m_VkCommon{};
 };
+
+// Describe whether input/output are real- or complex-valued
+// for factory registration
+template <>
+struct FFTImageFilterTraits<VkRealToHalfHermitianForwardFFTImageFilter>
+{
+  template <typename TUnderlying>
+  using InputPixelType = TUnderlying;
+  template <typename TUnderlying>
+  using OutputPixelType = std::complex<TUnderlying>;
+};
+
 } // namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
