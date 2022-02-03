@@ -17,7 +17,7 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "b1a0a91614dc091f9a17c1e4727095c80e9c05ea"
+            itk-git-tag: "ddef776afb46a6e135ba3c9f58a0e6e7e4a000be"
             cmake-build-type: "MinSizeRel"
           - os: windows-2019
             c-compiler: "cl.exe"
@@ -26,7 +26,7 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "b1a0a91614dc091f9a17c1e4727095c80e9c05ea"
+            itk-git-tag: "ddef776afb46a6e135ba3c9f58a0e6e7e4a000be"
             cmake-build-type: "Release"
           - os: macos-10.15
             c-compiler: "clang"
@@ -35,7 +35,7 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "b1a0a91614dc091f9a17c1e4727095c80e9c05ea"
+            itk-git-tag: "ddef776afb46a6e135ba3c9f58a0e6e7e4a000be"
             cmake-build-type: "MinSizeRel"
 
     steps:
@@ -99,7 +99,7 @@ jobs:
         cd ..
         mkdir OpenCL-SDK-build
         cd OpenCL-SDK-build
-        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -GNinja ../OpenCL-SDK
+        cmake -DCMAKE_C_COMPILER:FILEPATH="${{ matrix.c-compiler }}" -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -DOPENCL_SDK_BUILD_SAMPLES:BOOL=OFF -GNinja ../OpenCL-SDK
         sudo cmake --build . --target install
       shell: bash
 
@@ -216,9 +216,9 @@ jobs:
     strategy:
       max-parallel: 2
       matrix:
-        python-version-minor: [7, 8, 9]
+        python-version-minor: [7, 8, 9, 10]
         include:
-          - itk-python-git-tag: "v5.3rc01"
+          - itk-python-git-tag: "v5.3rc03"
             c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
             opencl-icd-loader-git-tag: "v2021.04.29"
@@ -300,7 +300,7 @@ jobs:
       matrix:
         python-version: [37, 38, 39]
         include:
-          - itk-python-git-tag: "v5.3rc01"
+          - itk-python-git-tag: "v5.3rc03"
 
     steps:
     - uses: actions/checkout@v2
@@ -332,7 +332,7 @@ jobs:
       max-parallel: 2
       matrix:
         include:
-          - itk-python-git-tag: "v5.3rc01"
+          - itk-python-git-tag: "v5.3rc03"
 
     steps:
     - uses: actions/checkout@v2

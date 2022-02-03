@@ -101,7 +101,6 @@ private:
 
   VkCommon m_VkCommon{};
 };
-
 } // namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION
