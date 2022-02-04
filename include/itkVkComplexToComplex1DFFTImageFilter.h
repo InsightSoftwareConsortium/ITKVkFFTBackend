@@ -19,6 +19,7 @@
 #ifndef itkVkComplexToComplex1DFFTImageFilter_h
 #define itkVkComplexToComplex1DFFTImageFilter_h
 
+#include "itkFFTImageFilterFactory.h"
 #include "itkVkCommon.h"
 #include "itkComplexToComplex1DFFTImageFilter.h"
 
@@ -43,22 +44,25 @@ namespace itk
  * \ingroup ITKFFT
  * \ingroup VkFFTBackend
  */
-template <typename TImage>
-class VkComplexToComplex1DFFTImageFilter : public ComplexToComplex1DFFTImageFilter<TImage>
+template <typename TInputImage, typename TOutputImage = TInputImage>
+class VkComplexToComplex1DFFTImageFilter : public ComplexToComplex1DFFTImageFilter<TInputImage, TOutputImage>
 {
 public:
   ITK_DISALLOW_COPY_AND_MOVE(VkComplexToComplex1DFFTImageFilter);
 
-  using InputImageType = TImage;
-  using OutputImageType = TImage;
-  static_assert(std::is_same<typename TImage::PixelType, std::complex<float>>::value ||
-                  std::is_same<typename TImage::PixelType, std::complex<double>>::value,
+  using InputImageType = TInputImage;
+  using OutputImageType = TOutputImage;
+  static_assert(std::is_same<typename TInputImage::PixelType, std::complex<float>>::value ||
+                  std::is_same<typename TInputImage::PixelType, std::complex<double>>::value,
                 "Unsupported pixel type");
-  static_assert(TImage::ImageDimension >= 1 && TImage::ImageDimension <= 3, "Unsupported image dimension");
+  static_assert(std::is_same<typename TOutputImage::PixelType, std::complex<float>>::value ||
+                  std::is_same<typename TOutputImage::PixelType, std::complex<double>>::value,
+                "Unsupported pixel type");
+  static_assert(TInputImage::ImageDimension >= 1 && TInputImage::ImageDimension <= 3, "Unsupported image dimension");
 
   /** Standard class type aliases. */
   using Self = VkComplexToComplex1DFFTImageFilter;
-  using Superclass = ComplexToComplex1DFFTImageFilter<TImage>;
+  using Superclass = ComplexToComplex1DFFTImageFilter<TInputImage, TOutputImage>;
   using Pointer = SmartPointer<Self>;
   using ConstPointer = SmartPointer<const Self>;
   using InputPixelType = typename InputImageType::PixelType;
@@ -97,6 +101,18 @@ private:
   uint64_t m_DeviceID{ 0UL };
 
   VkCommon m_VkCommon{};
+};
+
+// Describe whether input/output are real- or complex-valued
+// for factory registration
+template <>
+struct FFTImageFilterTraits<VkComplexToComplex1DFFTImageFilter>
+{
+  template <typename TUnderlying>
+  using InputPixelType = std::complex<TUnderlying>;
+  template <typename TUnderlying>
+  using OutputPixelType = std::complex<TUnderlying>;
+  using FilterDimensions = std::integer_sequence<unsigned int, 3, 2, 1>;
 };
 
 } // namespace itk

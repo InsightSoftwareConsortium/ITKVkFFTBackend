@@ -29,9 +29,9 @@
 
 namespace itk
 {
-template <typename TInputImage>
+template <typename TInputImage, typename TOutputImage>
 void
-VkInverse1DFFTImageFilter<TInputImage>::GenerateData()
+VkInverse1DFFTImageFilter<TInputImage, TOutputImage>::GenerateData()
 {
   // get pointers to the input and output
   const InputImageType * const input{ this->GetInput() };
@@ -103,17 +103,17 @@ VkInverse1DFFTImageFilter<TInputImage>::GenerateData()
   }
 }
 
-template <typename TInputImage>
+template <typename TInputImage, typename TOutputImage>
 void
-VkInverse1DFFTImageFilter<TInputImage>::PrintSelf(std::ostream & os, Indent indent) const
+VkInverse1DFFTImageFilter<TInputImage, TOutputImage>::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
   os << indent << "DeviceID: " << m_DeviceID << std::endl;
 }
 
-template <typename TInputImage>
-typename VkInverse1DFFTImageFilter<TInputImage>::SizeValueType
-VkInverse1DFFTImageFilter<TInputImage>::GetSizeGreatestPrimeFactor() const
+template <typename TInputImage, typename TOutputImage>
+typename VkInverse1DFFTImageFilter<TInputImage, TOutputImage>::SizeValueType
+VkInverse1DFFTImageFilter<TInputImage, TOutputImage>::GetSizeGreatestPrimeFactor() const
 {
   return m_VkCommon.GetGreatestPrimeFactor();
 }

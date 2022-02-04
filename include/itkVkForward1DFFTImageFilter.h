@@ -18,6 +18,7 @@
 #ifndef itkVkForward1DFFTImageFilter_h
 #define itkVkForward1DFFTImageFilter_h
 
+#include "itkFFTImageFilterFactory.h"
 #include "itkForward1DFFTImageFilter.h"
 #include "itkVkCommon.h"
 
@@ -45,18 +46,21 @@ namespace itk
  * \sa VkGlobalConfiguration
  * \sa Forward1DFFTImageFilter
  */
-template <typename TInputImage>
+template <typename TInputImage,
+          typename TOutputImage = Image<std::complex<typename TInputImage::PixelType>, TInputImage::ImageDimension>>
 class VkForward1DFFTImageFilter
-  : public Forward1DFFTImageFilter<TInputImage,
-                                 Image<std::complex<typename TInputImage::PixelType>, TInputImage::ImageDimension>>
+  : public Forward1DFFTImageFilter<TInputImage, TOutputImage>
 {
 public:
   ITK_DISALLOW_COPY_AND_MOVE(VkForward1DFFTImageFilter);
 
   using InputImageType = TInputImage;
-  using OutputImageType = Image<std::complex<typename TInputImage::PixelType>, TInputImage::ImageDimension>;
+  using OutputImageType = TOutputImage;
   static_assert(std::is_same<typename TInputImage::PixelType, float>::value ||
                   std::is_same<typename TInputImage::PixelType, double>::value,
+                "Unsupported pixel type");
+  static_assert(std::is_same<typename TOutputImage::PixelType, std::complex<float>>::value ||
+                  std::is_same<typename TOutputImage::PixelType, std::complex<double>>::value,
                 "Unsupported pixel type");
   static_assert(TInputImage::ImageDimension >= 1 && TInputImage::ImageDimension <= 3, "Unsupported image dimension");
 
@@ -102,6 +106,17 @@ private:
   uint64_t m_DeviceID{ 0UL };
 
   VkCommon m_VkCommon{};
+};
+
+// Describe whether input/output are real- or complex-valued
+// for factory registration
+template <>
+struct FFTImageFilterTraits<VkForward1DFFTImageFilter>
+{
+  template <typename TUnderlying>
+  using InputPixelType = TUnderlying;
+  template <typename TUnderlying>
+  using OutputPixelType = std::complex<TUnderlying>;
 };
 
 } // namespace itk

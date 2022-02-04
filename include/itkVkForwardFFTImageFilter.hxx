@@ -30,13 +30,13 @@
 namespace itk
 {
 
-template <typename TInputImage>
-VkForwardFFTImageFilter<TInputImage>::VkForwardFFTImageFilter()
+template <typename TInputImage, typename TOutputImage>
+VkForwardFFTImageFilter<TInputImage, TOutputImage>::VkForwardFFTImageFilter()
 {}
 
-template <typename TInputImage>
+template <typename TInputImage, typename TOutputImage>
 void
-VkForwardFFTImageFilter<TInputImage>::GenerateData()
+VkForwardFFTImageFilter<TInputImage, TOutputImage>::GenerateData()
 {
   // get pointers to the input and output
   const InputImageType * const input{ this->GetInput() };
@@ -101,17 +101,17 @@ VkForwardFFTImageFilter<TInputImage>::GenerateData()
   }
 }
 
-template <typename TInputImage>
+template <typename TInputImage, typename TOutputImage>
 void
-VkForwardFFTImageFilter<TInputImage>::PrintSelf(std::ostream & os, Indent indent) const
+VkForwardFFTImageFilter<TInputImage, TOutputImage>::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
   os << indent << "DeviceID: " << m_DeviceID << std::endl;
 }
 
-template <typename TInputImage>
-typename VkForwardFFTImageFilter<TInputImage>::SizeValueType
-VkForwardFFTImageFilter<TInputImage>::GetSizeGreatestPrimeFactor() const
+template <typename TInputImage, typename TOutputImage>
+typename VkForwardFFTImageFilter<TInputImage, TOutputImage>::SizeValueType
+VkForwardFFTImageFilter<TInputImage, TOutputImage>::GetSizeGreatestPrimeFactor() const
 {
   return m_VkCommon.GetGreatestPrimeFactor();
 }
