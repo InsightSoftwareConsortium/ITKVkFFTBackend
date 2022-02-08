@@ -12,7 +12,7 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "b1a0a91614dc091f9a17c1e4727095c80e9c05ea"
+            itk-git-tag: "ddef776afb46a6e135ba3c9f58a0e6e7e4a000be"
             cmake-build-type: "MinSizeRel"
             platform-name: "ubuntu-nvidia-gpu"
             os: ubuntu-20.04
