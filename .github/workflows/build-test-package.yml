@@ -284,7 +284,7 @@ jobs:
         set PATH="C:\P\grep;%PATH%"
         set CC=cl.exe
         set CXX=cl.exe
-        C:\Python3${{ matrix.python-version-minor }}-x64\python.exe C:\P\IPP\scripts\windows_build_module_wheels.py --py-envs "3${{ matrix.python-version-minor }}-x64" --no-cleanup -- "-DOpenCL_INCLUDE_DIR:PATH=${{ github.workspace}}/../OpenCL-ICD-Loader/inc" "-DOpenCL_LIBRARY:FILEPATH=${{ github.workspace}}/../OpenCL-ICD-Loader-build/OpenCL.lib"
+        C:\Python3${{ matrix.python-version-minor }}-x64\python.exe C:\P\IPP\scripts\windows_build_module_wheels.py --py-envs "3${{ matrix.python-version-minor }}-x64" --no-cleanup --lib-paths="${{ github.workspace}}/../OpenCL-ICD-Loader-build" -- "-DOpenCL_INCLUDE_DIR:PATH=${{ github.workspace}}/../OpenCL-ICD-Loader/inc" "-DOpenCL_LIBRARY:FILEPATH=${{ github.workspace}}/../OpenCL-ICD-Loader-build/OpenCL.lib"
       shell: cmd
 
     - name: Publish Python package as GitHub Artifact
