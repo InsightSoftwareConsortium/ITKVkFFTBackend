@@ -25,6 +25,8 @@ itk_module(VkFFTBackend
     ITKImageIntensity
   DESCRIPTION
     "${DOCUMENTATION}"
+  FACTORY_NAMES
+    "FFTImageFilterInit::Vk"
   EXCLUDE_FROM_DEFAULT
   ENABLE_SHARED
 )
