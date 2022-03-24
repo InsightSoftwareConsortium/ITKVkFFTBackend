@@ -86,6 +86,7 @@ itkVkHalfHermitianFFTImageFilterTest(int argc, char * argv[])
 
       size.Fill(0);
       size[0] = mySize;
+      bool xIsOdd = (mySize % 2 == 1);
 
       typename RealImageType::Pointer realImage{ RealImageType::New() };
       realImage->SetRegions(size);
@@ -149,8 +150,7 @@ itkVkHalfHermitianFFTImageFilterTest(int argc, char * argv[])
 
       thisTestPassed = true;
       inverseFilter->SetInput(output);
-      index[0] = 0;
-      inverseFilter->SetOutputRegion({ index, size });
+      inverseFilter->SetActualXDimensionIsOdd(xIsOdd);
       inverseFilter->Update();
       typename RealImageType::Pointer        output2{ inverseFilter->GetOutput() };
       const typename RealImageType::SizeType output2Size{ output2->GetLargestPossibleRegion().GetSize() };

@@ -52,7 +52,7 @@ VkHalfHermitianToRealInverseFFTImageFilter<TInputImage, TOutputImage>::GenerateD
   const ProgressReporter progress(this, 0, 1);
 
   // allocate output buffer memory
-  output->SetRegions(this->GetOutputRegion());
+  output->SetRegions(output->GetRequestedRegion());
   output->Allocate();
 
   const SizeType & outputSize{ output->GetBufferedRegion().GetSize() };

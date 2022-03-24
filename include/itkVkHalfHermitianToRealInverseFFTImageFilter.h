@@ -85,11 +85,9 @@ public:
 
   static constexpr unsigned int ImageDimension = InputImageType::ImageDimension;
 
+  /** Platform identifier for accelerator backend */
   itkGetMacro(DeviceID, uint64_t);
   itkSetMacro(DeviceID, uint64_t);
-
-  itkSetMacro(OutputRegion, OutputImageRegionType);
-  itkGetConstMacro(OutputRegion, OutputImageRegionType);
 
   SizeValueType
   GetSizeGreatestPrimeFactor() const override;
@@ -106,8 +104,6 @@ protected:
 
 private:
   uint64_t m_DeviceID{ 0UL };
-
-  OutputImageRegionType m_OutputRegion;
 
   VkCommon m_VkCommon{};
 };
