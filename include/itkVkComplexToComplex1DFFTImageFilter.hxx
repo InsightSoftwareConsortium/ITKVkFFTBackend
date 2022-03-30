@@ -20,6 +20,7 @@
 #define itkVkComplexToComplex1DFFTImageFilter_hxx
 
 #include "itkVkComplexToComplex1DFFTImageFilter.h"
+#include "itkVkGlobalConfiguration.h"
 #include "vkFFT.h"
 #include "itkImageRegionIterator.h"
 #include "itkIndent.h"
@@ -61,7 +62,7 @@ VkComplexToComplex1DFFTImageFilter<TInputImage, TOutputImage>::GenerateData()
 
   // Mostly use defaults for VkCommon::VkGPU
   typename VkCommon::VkGPU vkGPU;
-  vkGPU.device_id = m_DeviceID;
+  vkGPU.device_id = this->GetDeviceID();
 
   // Describe this filter in VkCommon::VkParameters
   typename VkCommon::VkParameters vkParameters;
@@ -112,7 +113,10 @@ void
 VkComplexToComplex1DFFTImageFilter<TInputImage, TOutputImage>::PrintSelf(std::ostream & os, Indent indent) const
 {
   Superclass::PrintSelf(os, indent);
-  os << indent << "DeviceID: " << m_DeviceID << std::endl;
+  os << indent << "UseVkGlobalConfiguration: " << m_UseVkGlobalConfiguration << std::endl;
+  os << indent << "Local DeviceID: " << m_DeviceID << std::endl;
+  os << indent << "Global DeviceID: " << VkGlobalConfiguration::GetDeviceID() << std::endl;
+  os << indent << "Preferred DeviceID: " << this->GetDeviceID() << std::endl;
 }
 
 template <typename TInputImage, typename TOutputImage>
