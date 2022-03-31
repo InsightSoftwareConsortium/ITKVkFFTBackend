@@ -19,6 +19,7 @@
 #define itkVkCommon_h
 
 #include "VkFFTBackendExport.h"
+#include "itkVkDefinitions.h"
 #include "itkDataObject.h"
 #include "vkFFT.h"
 
@@ -97,17 +98,27 @@ public:
 
   struct VkGPU
   {
+#if (VKFFT_BACKEND == CUDA)
+    CUdevice device = 0;
+    CUcontext context = 0;
+#elif (VKFFT_BACKEND == OPENCL)
     cl_platform_id   platform = 0;
     cl_device_id     device = 0;
     cl_context       context = 0;
     cl_command_queue commandQueue = 0;
+#endif
     uint64_t         device_id = 0; // default value
 
     bool
     operator!=(const VkGPU & rhs) const
     {
+#  if (VKFFT_BACKEND == CUDA)
+      return this->device != rhs.device || this->context != rhs.context ||
+          this->device_id != rhs.device_id;
+#  elif (VKFFT_BACKEND == OPENCL)
       return this->platform != rhs.platform || this->device != rhs.device || this->context != rhs.context ||
              this->commandQueue != rhs.commandQueue || this->device_id != rhs.device_id;
+#endif
     }
   };
 

@@ -9,6 +9,10 @@ if(NOT ITK_SOURCE_DIR)
   include(itk-module-init.cmake)
 endif()
 
+set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
+if(${VKFFT_BACKEND} EQUAL 1)
+# pass
+elseif(${VKFFT_BACKEND} EQUAL 3)
 ## When this module is loaded by an app, load OpenCL too.
 set(VkFFTBackend_EXPORT_CODE_INSTALL "
 set(OpenCL_DIR \"${OpenCL_DIR}\")
@@ -23,10 +27,10 @@ endif()
 set(VkFFTBackend_SYSTEM_INCLUDE_DIRS ${OpenCL_INCLUDE_DIRS})
 get_filename_component(OpenCL_LIB_DIR ${OpenCL_LIBRARY} DIRECTORY)
 set(VkFFTBackend_SYSTEM_LIBRARY_DIRS ${OpenCL_LIB_DIR})
+endif()
 
 ## VkFFT dependency
 include(FetchContent)
-set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
 add_definitions(-DVKFFT_BACKEND=${VKFFT_BACKEND} -DCL_TARGET_OPENCL_VERSION=120)
 set(vulkan_GIT_REPOSITORY "https://github.com/DTolm/VkFFT") # original source
 set(vulkan_GIT_TAG        "3aecc219153f97aaa46e613abbf430033eb27512")

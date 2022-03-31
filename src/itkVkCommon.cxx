@@ -16,6 +16,8 @@
  *
  *=========================================================================*/
 #include "itkVkCommon.h"
+#include "itkVkDefinitions.h"
+#include "vkFFT.h"
 #include "itkMacro.h"
 #include <complex>
 #include <iostream>
@@ -59,7 +61,24 @@ VkFFTResult
 VkCommon::ConfigureBackend()
 {
   VkFFTResult resFFT{ VKFFT_SUCCESS };
-  cl_int      resCL{ CL_SUCCESS };
+#if (VKFFT_BACKEND == CUDA)
+  CUresult    res = CUDA_SUCCESS;
+  cudaError_t res2 = cudaSuccess;
+  res = cuInit(0);
+  if (res != CUDA_SUCCESS)
+    return VKFFT_ERROR_FAILED_TO_INITIALIZE;
+  res2 = cudaSetDevice((int)m_VkGPU.device_id);
+  if (res2 != cudaSuccess)
+    return VKFFT_ERROR_FAILED_TO_SET_DEVICE_ID;
+  res = cuDeviceGet(&m_VkGPU.device, (int)m_VkGPU.device_id);
+  if (res != CUDA_SUCCESS)
+    return VKFFT_ERROR_FAILED_TO_GET_DEVICE;
+  res = cuCtxCreate(&m_VkGPU.context, 0, (int)m_VkGPU.device);
+  if (res != CUDA_SUCCESS)
+    return VKFFT_ERROR_FAILED_TO_CREATE_CONTEXT;
+
+#elif (VKFFT_BACKEND == OPENCL)
+  cl_int resCL{ CL_SUCCESS };
 
   // Begin code that mimics launchVkFFT from VkFFT/Vulkan_FFT.cpp, though just the OpenCL part.
   cl_uint numPlatforms;
@@ -120,10 +139,11 @@ VkCommon::ConfigureBackend()
       }
     }
   }
+#endif
 
   // Proceed by doing something similar to user_benchmark_VkFFT from
   // VkFFT/benchmark_scripts/vkFFT_scripts/src/user_benchmark_VkFFT.cpp, but without file_output and
-  // output, and just the OpenCL part.
+  // output.
 
   m_VkFFTConfiguration.size[0] = std::max(m_VkParameters.X, (decltype(m_VkParameters.X))1);
   m_VkFFTConfiguration.size[1] = std::max(m_VkParameters.Y, (decltype(m_VkParameters.Y))1);
@@ -155,18 +175,16 @@ VkCommon::ConfigureBackend()
   // memory FFT is performed on. [uint64_t *kernelSize, VkBuffer *kernel, VkDeviceMemory* kernelDeviceMemory] -
   // allocated GPU memory, where kernel for convolution is stored.
   m_VkFFTConfiguration.device = &m_VkGPU.device;
+#if (VKFFT_BACKEND == CUDA)
+  // pass
+#elif (VKFFT_BACKEND == OPENCL)
   m_VkFFTConfiguration.platform = &m_VkGPU.platform;
   m_VkFFTConfiguration.context = &m_VkGPU.context;
+#endif
 
   m_VkFFTConfiguration.makeInversePlanOnly = (m_VkParameters.I == DirectionEnum::INVERSE);
   m_VkFFTConfiguration.makeForwardPlanOnly = (m_VkParameters.I == DirectionEnum::FORWARD);
 
-  // Configure the buffers.  Some of these three pointers will be nullptr or be duplicates of each
-  // other, so don't release all of them at the end.  All re-striding of data (for R2HalfH or R2FullH,
-  // regardless of forward vs. inverse) is done by VkFFT between the two GPU buffers it uses.
-  cl_mem inputGPUBuffer{ nullptr };  // Copy from CPU input buffer to this GPU buffer
-  cl_mem GPUBuffer{ nullptr };       // GPU buffer where main computation occurs
-  cl_mem outputGPUBuffer{ nullptr }; // Copy from this GPU buffer to CPU output buffer
   if (m_VkParameters.fft == FFTEnum::C2C)
   {
     // For C2C computation we can do everything in the in-place-computation buffer.
@@ -243,7 +261,76 @@ VkFFTResult
 VkCommon::PerformFFT()
 {
   VkFFTResult resFFT{ VKFFT_SUCCESS };
-  cl_int      resCL{ CL_SUCCESS };
+
+#if (VKFFT_BACKEND == CUDA)
+  cudaError resCu = cudaSuccess;
+
+  cuFloatComplex * inputGPUBuffer{ nullptr };
+  cuFloatComplex * GPUBuffer{ nullptr };
+  cuFloatComplex * outputGPUBuffer{ nullptr };
+
+  // Allocate the in-place-computation buffer
+  const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
+  resCu = cudaMalloc((void **)&GPUBuffer, bufferBytes);
+
+  if (resCu != cudaSuccess)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): cudaMalloc returned " << resCu << std::endl;
+    return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+  }
+
+  m_VkFFTConfiguration.buffer = reinterpret_cast<void **>(&GPUBuffer);
+
+  if (m_VkParameters.fft == FFTEnum::C2C)
+  {
+    // For C2C computation we can do everything in the in-place-computation buffer.
+    inputGPUBuffer = GPUBuffer;
+    outputGPUBuffer = GPUBuffer;
+  }
+  else
+  {
+    if (m_VkParameters.I == DirectionEnum::FORWARD)
+    {
+      outputGPUBuffer = GPUBuffer;
+
+      // Either R2FullH or R2HalfH.  For forward computation, we have a smaller input buffer.
+      const uint64_t inputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.inputBufferSize };
+      resCu = cudaMalloc((void **)&inputGPUBuffer, inputBufferBytes);
+      if (resCu != cudaSuccess)
+      {
+        std::cerr << __FILE__ "(" << __LINE__ << "): cudaMalloc returned " << resCu << std::endl;
+        return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+      }
+
+      m_VkFFTConfiguration.inputBuffer = reinterpret_cast<void **>(&inputGPUBuffer);
+    }
+    else
+    {
+      inputGPUBuffer = GPUBuffer;
+
+      // Either R2FullH or R2HalfH.  For inverse computation, we have a smaller output buffer.
+      uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
+      resCu = cudaMalloc((void **)&outputGPUBuffer, outputBufferBytes);
+      if (resCu != cudaSuccess)
+      {
+        std::cerr << __FILE__ "(" << __LINE__ << "): cudaMalloc returned " << resCu << std::endl;
+        return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+      }
+      m_VkFFTConfiguration.outputBuffer = reinterpret_cast<void **>(&outputGPUBuffer);
+    }
+  }
+
+  // Copy input from CPU to GPU
+  resCu =
+    cudaMemcpy(inputGPUBuffer, m_VkParameters.inputCPUBuffer, m_VkParameters.inputBufferBytes, cudaMemcpyHostToDevice);
+  if (resCu != cudaSuccess)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): cudaMemcpy returned " << resCu << std::endl;
+    return VKFFT_ERROR_FAILED_TO_COPY;
+  }
+
+#elif (VKFFT_BACKEND == OPENCL)
+  cl_int resCL{ CL_SUCCESS };
 
   // Configure the buffers.  Some of these three pointers will be nullptr or be duplicates of each
   // other, so don't release all of them at the end.  All re-striding of data (for R2HalfH or R2FullH,
@@ -320,6 +407,7 @@ VkCommon::PerformFFT()
     std::cerr << __FILE__ "(" << __LINE__ << "): clEnqueueWriteBuffer returned " << resCL << std::endl;
     return VKFFT_ERROR_FAILED_TO_COPY;
   }
+#endif
 
   // Initialize applications. This function loads shaders, creates pipeline and configures FFT based on configuration
   // file. No buffer allocations inside VkFFT library.
@@ -330,14 +418,44 @@ VkCommon::PerformFFT()
 
   // Submit FFT or iFFT.
   VkFFTLaunchParams launchParams{};
-  launchParams.commandQueue = &m_VkGPU.commandQueue;
   launchParams.inputBuffer = m_VkFFTConfiguration.inputBuffer;
   launchParams.buffer = m_VkFFTConfiguration.buffer;
   launchParams.outputBuffer = m_VkFFTConfiguration.outputBuffer;
+#if (VKFFT_BACKEND == CUDA)
+  // pass
+#elif (VKFFT_BACKEND == OPENCL)
+  launchParams.commandQueue = &m_VkGPU.commandQueue;
+#endif
 
   resFFT = VkFFTAppend(&app, m_VkParameters.I == DirectionEnum::INVERSE ? 1 : -1, &launchParams);
   if (resFFT != VKFFT_SUCCESS)
     return resFFT;
+
+#if (VKFFT_BACKEND == CUDA)
+  resCu = cudaDeviceSynchronize();
+  if (resCu != cudaSuccess)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): cudaDeviceSynchronize returned " << resCu << std::endl;
+    return VKFFT_ERROR_FAILED_TO_SYNCHRONIZE;
+  }
+
+  // Copy result from GPU to CPU
+  resCu = cudaMemcpy(
+    m_VkParameters.outputCPUBuffer, outputGPUBuffer, m_VkParameters.outputBufferBytes, cudaMemcpyDeviceToHost);
+  if (resCu != cudaSuccess)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): cudaMemcpy returned " << resCu << std::endl;
+    return VKFFT_ERROR_FAILED_TO_COPY;
+  }
+
+  // Release mem buffers
+  cudaFree(inputGPUBuffer);
+  if (m_VkParameters.fft != FFTEnum::C2C)
+  {
+    cudaFree(outputGPUBuffer);
+  }
+
+#elif (VKFFT_BACKEND == OPENCL)
   resCL = clFinish(m_VkGPU.commandQueue);
   if (resCL != CL_SUCCESS)
   {
@@ -367,6 +485,7 @@ VkCommon::PerformFFT()
     // Release other buffer too
     clReleaseMemObject(outputGPUBuffer);
   }
+#endif
 
   if (m_VkParameters.fft == FFTEnum::R2FullH && m_VkParameters.I == DirectionEnum::FORWARD)
   {
@@ -420,9 +539,16 @@ VkFFTResult
 VkCommon::ReleaseBackend()
 {
   VkFFTResult resFFT{ VKFFT_SUCCESS };
-  cl_int      resCL{ CL_SUCCESS };
 
   // Return to launchVkFFT code
+#if (VKFFT_BACKEND == CUDA)
+  if (m_VkGPU.context)
+  {
+    cuCtxDestroy(m_VkGPU.context);
+  }
+#elif (VKFFT_BACKEND == OPENCL)
+  cl_int resCL{ CL_SUCCESS };
+
   if (m_VkGPU.commandQueue)
   {
     resCL = clReleaseCommandQueue(m_VkGPU.commandQueue);
@@ -442,6 +568,7 @@ VkCommon::ReleaseBackend()
       return VKFFT_ERROR_FAILED_TO_RELEASE_COMMAND_QUEUE;
     }
   }
+#endif
 
   // Invalidate cache description!!!
 
