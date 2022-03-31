@@ -23,6 +23,7 @@
 #include "itkCommand.h"
 #include "itkImageFileWriter.h"
 #include "itkTestingMacros.h"
+#include "itkVkGlobalConfiguration.h"
 
 namespace
 {
@@ -75,7 +76,9 @@ itkVkComplexToComplex1DFFTImageFilterSizesTest(int argc, char * argv[])
 
     using FilterType = itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType>;
     typename FilterType::Pointer filter{ FilterType::New() };
-    filter->SetDeviceID(0);
+    //filter->SetDeviceID(0);
+    itk::VkGlobalConfiguration::SetDeviceID(0);
+
 
     ITK_EXERCISE_BASIC_OBJECT_METHODS(filter, VkComplexToComplex1DFFTImageFilter, ComplexToComplex1DFFTImageFilter);
 
@@ -136,7 +139,7 @@ itkVkComplexToComplex1DFFTImageFilterSizesTest(int argc, char * argv[])
 
       using FilterType = itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType>;
       typename FilterType::Pointer filter{ FilterType::New() };
-      filter->SetDeviceID(0);
+      //filter->SetDeviceID(0);
       filter->SetInput(image);
 
       ITK_TRY_EXPECT_NO_EXCEPTION(filter->Update());

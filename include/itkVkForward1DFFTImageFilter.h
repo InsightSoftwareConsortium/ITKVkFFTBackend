@@ -21,6 +21,7 @@
 #include "itkFFTImageFilterFactory.h"
 #include "itkForward1DFFTImageFilter.h"
 #include "itkVkCommon.h"
+#include "itkVkGlobalConfiguration.h"
 
 namespace itk
 {
@@ -33,9 +34,9 @@ namespace itk
  * implementation is based on the VkFFT library.
  *
  * This filter is multithreaded and by default supports input images with sizes which are
- * divisible by primes up to 13.
- * 
- * Execution on input images with sizes divisible by primes greater than 17 may succeed 
+ * divisible only by primes up to 13.
+ *
+ * Execution on input images with sizes divisible by primes greater than 13 may succeed
  * with a fallback on Bluestein's algorithm per VkFFT with a cost to performance and output precision.
  *
  * \ingroup FourierTransform
@@ -48,8 +49,7 @@ namespace itk
  */
 template <typename TInputImage,
           typename TOutputImage = Image<std::complex<typename TInputImage::PixelType>, TInputImage::ImageDimension>>
-class VkForward1DFFTImageFilter
-  : public Forward1DFFTImageFilter<TInputImage, TOutputImage>
+class VkForward1DFFTImageFilter : public Forward1DFFTImageFilter<TInputImage, TOutputImage>
 {
 public:
   ITK_DISALLOW_COPY_AND_MOVE(VkForward1DFFTImageFilter);
@@ -86,8 +86,24 @@ public:
 
   static constexpr unsigned int ImageDimension = InputImageType::ImageDimension;
 
-  itkGetMacro(DeviceID, uint64_t);
+  /** Determine whether local or global properties will be
+   *  referenced for setting up GPU acceleration.
+   *  Defaults to global so that the user can adjust default properties
+   *  in filters constructed through the ITK object factory. */
+  itkSetMacro(UseVkGlobalConfiguration, bool);
+  itkGetMacro(UseVkGlobalConfiguration, bool);
+
+  /** Local setting for enumerated GPU device to use for FFT.
+   *  Ignored if `UseVkGlobalConfiguration` is true. */
   itkSetMacro(DeviceID, uint64_t);
+
+  /** Return the enumerated GPU device to use for FFT
+   *  according to current filter settings. */
+  uint64_t
+  GetDeviceID() const
+  {
+    return m_UseVkGlobalConfiguration ? VkGlobalConfiguration::GetDeviceID() : m_DeviceID;
+  }
 
   SizeValueType
   GetSizeGreatestPrimeFactor() const override;
@@ -103,6 +119,7 @@ protected:
   PrintSelf(std::ostream & os, Indent indent) const override;
 
 private:
+  bool     m_UseVkGlobalConfiguration{true};
   uint64_t m_DeviceID{ 0UL };
 
   VkCommon m_VkCommon{};
