@@ -83,7 +83,7 @@ itkVkForwardInverseFFTImageFilterTest(int argc, char * argv[])
       // will succeed with Bluestein's Algorithm implementation in VkFFT, though
       // with less precision.
 
-      float valueTolerance = (mySize == 17 || mySize == 19) ? 1e-5 : 1e-6;
+      float valueTolerance{ (mySize == 17 || mySize == 19) ? 1e-5f : 1e-6f };
 
       size.Fill(0);
       size[0] = mySize;

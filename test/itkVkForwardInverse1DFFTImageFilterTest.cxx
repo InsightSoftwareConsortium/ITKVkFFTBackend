@@ -82,7 +82,7 @@ itkVkForwardInverse1DFFTImageFilterTest(int argc, char * argv[])
       // We expect that anything evenly divisible by a prime number greater than 13
       // will succeed with Bluestein's Algorithm implementation in VkFFT, though
       // with less precision.
-      float valueTolerance = (mySize == 17 || mySize == 19) ? 1e-5 : 1e-6;
+      float valueTolerance{ (mySize == 17 || mySize == 19) ? 1e-5f : 1e-6f };
 
       size.Fill(0);
       size[0] = mySize;
@@ -121,60 +121,59 @@ itkVkForwardInverse1DFFTImageFilterTest(int argc, char * argv[])
       inverseFilter->SetDeviceID(0);
       inverseFilter->SetInput(complexImage);
 
-        bool thisTestPassed{ true };
-        forwardFilter->Update();
-        typename ComplexImageType::Pointer        output{ forwardFilter->GetOutput() };
-        const typename ComplexImageType::SizeType outputSize{ output->GetLargestPossibleRegion().GetSize() };
-        if (outputSize[0] != mySize)
+      bool thisTestPassed{ true };
+      forwardFilter->Update();
+      typename ComplexImageType::Pointer        output{ forwardFilter->GetOutput() };
+      const typename ComplexImageType::SizeType outputSize{ output->GetLargestPossibleRegion().GetSize() };
+      if (outputSize[0] != mySize)
+      {
+        std::cout << "Size is " << outputSize[0] << " but should be " << mySize << "." << std::endl;
+        thisTestPassed = false;
+      }
+      for (int i = 0; i < mySize; ++i)
+      {
+        index[0] = i;
+        if (std::abs(output->GetPixel(index) - complexSomeValue) > valueTolerance)
         {
-          std::cout << "Size is " << outputSize[0] << " but should be " << mySize << "." << std::endl;
+          std::cout << output->GetPixel(index)
+                    << ": |difference| = " << std::abs(output->GetPixel(index) - complexSomeValue) << std::endl;
           thisTestPassed = false;
         }
-        for (int i = 0; i < mySize; ++i)
-        {
-          index[0] = i;
-          if (std::abs(output->GetPixel(index) - complexSomeValue) > valueTolerance)
-          {
-            std::cout << output->GetPixel(index)
-                      << ": |difference| = " << std::abs(output->GetPixel(index) - complexSomeValue) << std::endl;
-            thisTestPassed = false;
-          }
-        }
-        std::cout << "Test " << ++testNumber << " (forward, size=" << mySize << ") ... "
-                  << (thisTestPassed ? "passed." : "failed.") << std::endl;
-        testsPassed &= thisTestPassed;
+      }
+      std::cout << "Test " << ++testNumber << " (forward, size=" << mySize << ") ... "
+                << (thisTestPassed ? "passed." : "failed.") << std::endl;
+      testsPassed &= thisTestPassed;
 
-        thisTestPassed = true;
-        inverseFilter->SetInput(output);
-        inverseFilter->Update();
-        typename RealImageType::Pointer        output2{ inverseFilter->GetOutput() };
-        const typename RealImageType::SizeType output2Size{ output2->GetLargestPossibleRegion().GetSize() };
-        if (output2Size[0] != mySize)
-        {
-          std::cout << "Size is " << output2Size[0] << " but should be " << mySize << "." << std::endl;
-          thisTestPassed = false;
-        }
-        index[0] = 0;
-        if (std::abs(output2->GetPixel(index) - realSomeValue) > valueTolerance)
+      thisTestPassed = true;
+      inverseFilter->SetInput(output);
+      inverseFilter->Update();
+      typename RealImageType::Pointer        output2{ inverseFilter->GetOutput() };
+      const typename RealImageType::SizeType output2Size{ output2->GetLargestPossibleRegion().GetSize() };
+      if (output2Size[0] != mySize)
+      {
+        std::cout << "Size is " << output2Size[0] << " but should be " << mySize << "." << std::endl;
+        thisTestPassed = false;
+      }
+      index[0] = 0;
+      if (std::abs(output2->GetPixel(index) - realSomeValue) > valueTolerance)
+      {
+        std::cout << output2->GetPixel(index)
+                  << ": |difference| = " << std::abs(output2->GetPixel(index) - realSomeValue) << std::endl;
+        thisTestPassed = false;
+      }
+      for (int i = 1; i < mySize; ++i)
+      {
+        index[0] = i;
+        if (std::abs(output2->GetPixel(index) - realZeroValue) > valueTolerance)
         {
           std::cout << output2->GetPixel(index)
-                    << ": |difference| = " << std::abs(output2->GetPixel(index) - realSomeValue) << std::endl;
+                    << ": |difference| = " << std::abs(output2->GetPixel(index) - realZeroValue) << std::endl;
           thisTestPassed = false;
         }
-        for (int i = 1; i < mySize; ++i)
-        {
-          index[0] = i;
-          if (std::abs(output2->GetPixel(index) - realZeroValue) > valueTolerance)
-          {
-            std::cout << output2->GetPixel(index)
-                      << ": |difference| = " << std::abs(output2->GetPixel(index) - realZeroValue) << std::endl;
-            thisTestPassed = false;
-          }
-        }
-        std::cout << "Test " << ++testNumber << " (inverse, size=" << mySize << ") ... "
-                  << (thisTestPassed ? "passed." : "failed.") << std::endl;
-        testsPassed &= thisTestPassed;
-      
+      }
+      std::cout << "Test " << ++testNumber << " (inverse, size=" << mySize << ") ... "
+                << (thisTestPassed ? "passed." : "failed.") << std::endl;
+      testsPassed &= thisTestPassed;
     }
   }
 

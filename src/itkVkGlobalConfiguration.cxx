@@ -24,7 +24,7 @@ namespace itk
 {
 struct VkGlobalConfigurationGlobals
 {
-  VkGlobalConfiguration::Pointer m_Instance{nullptr};
+  VkGlobalConfiguration::Pointer m_Instance{ nullptr };
   std::mutex                     m_CreationLock;
 };
 
@@ -57,7 +57,7 @@ VkGlobalConfiguration::GetInstance()
     }
     m_PimplGlobals->m_CreationLock.unlock();
   }
-  return m_PimplGlobals->m_Instance;
+  return { m_PimplGlobals->m_Instance };
 }
 
 void
@@ -71,7 +71,7 @@ uint64_t
 VkGlobalConfiguration::GetDeviceID()
 {
   itkInitGlobalsMacro(PimplGlobals);
-  return GetInstance()->m_DeviceID;
+  return { GetInstance()->m_DeviceID };
 }
 
 } // namespace itk

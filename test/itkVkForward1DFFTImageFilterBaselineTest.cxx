@@ -39,11 +39,11 @@ doTest(const char * inputImage, const char * outputImagePrefix)
   using ImaginaryFilterType = itk::ComplexToImaginaryImageFilter<ComplexImageType, ImageType>;
   using WriterType = itk::ImageFileWriter<ImageType>;
 
-  typename ReaderType::Pointer          reader = ReaderType::New();
-  typename FFTType::Pointer             fft = FFTType::New();
-  typename RealFilterType::Pointer      realFilter = RealFilterType::New();
-  typename ImaginaryFilterType::Pointer imaginaryFilter = ImaginaryFilterType::New();
-  typename WriterType::Pointer          writer = WriterType::New();
+  typename ReaderType::Pointer          reader{ ReaderType::New() };
+  typename FFTType::Pointer             fft{ FFTType::New() };
+  typename RealFilterType::Pointer      realFilter{ RealFilterType::New() };
+  typename ImaginaryFilterType::Pointer imaginaryFilter{ ImaginaryFilterType::New() };
+  typename WriterType::Pointer          writer{ WriterType::New() };
 
   reader->SetFileName(inputImage);
   fft->SetInput(reader->GetOutput());
@@ -83,7 +83,7 @@ itkVkForward1DFFTImageFilterBaselineTest(int argc, char * argv[])
   using ComplexImageType = typename FFTForwardType::OutputImageType;
 
   // Instantiate a filter to exercise basic object methods
-  typename FFTForwardType::Pointer fft = FFTForwardType::New();
+  typename FFTForwardType::Pointer fft{ FFTForwardType::New() };
   ITK_EXERCISE_BASIC_OBJECT_METHODS(fft, VkForward1DFFTImageFilter, Forward1DFFTImageFilter);
 
   return doTest<FFTForwardType>(argv[1], argv[2]);

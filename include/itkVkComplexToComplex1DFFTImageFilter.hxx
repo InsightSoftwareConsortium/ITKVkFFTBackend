@@ -123,7 +123,7 @@ template <typename TInputImage, typename TOutputImage>
 typename VkComplexToComplex1DFFTImageFilter<TInputImage, TOutputImage>::SizeValueType
 VkComplexToComplex1DFFTImageFilter<TInputImage, TOutputImage>::GetSizeGreatestPrimeFactor() const
 {
-  return m_VkCommon.GetGreatestPrimeFactor();
+  return { m_VkCommon.GetGreatestPrimeFactor() };
 }
 
 } // end namespace itk
