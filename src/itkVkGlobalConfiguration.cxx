@@ -57,7 +57,7 @@ VkGlobalConfiguration::GetInstance()
     }
     m_PimplGlobals->m_CreationLock.unlock();
   }
-  return { m_PimplGlobals->m_Instance };
+  return typename VkGlobalConfiguration::Pointer{ m_PimplGlobals->m_Instance };
 }
 
 void
@@ -71,7 +71,7 @@ uint64_t
 VkGlobalConfiguration::GetDeviceID()
 {
   itkInitGlobalsMacro(PimplGlobals);
-  return { GetInstance()->m_DeviceID };
+  return uint64_t{ GetInstance()->m_DeviceID };
 }
 
 } // namespace itk

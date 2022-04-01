@@ -98,7 +98,7 @@ public:
   uint64_t
   GetDeviceID() const
   {
-    return { m_UseVkGlobalConfiguration ? VkGlobalConfiguration::GetDeviceID() : m_DeviceID };
+    return uint64_t{ m_UseVkGlobalConfiguration ? VkGlobalConfiguration::GetDeviceID() : m_DeviceID };
   }
 
   SizeValueType
