@@ -40,14 +40,14 @@ itkVkFFTImageFilterFactoryTest(int argc, char * argv[])
   using FFTVkSubclassType = itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType>;
 
   // Verify default is non-accelerated implementation
-  typename FFTBaseType::Pointer fft = FFTBaseType::New();
+  typename FFTBaseType::Pointer fft{ FFTBaseType::New() };
   FFTDefaultSubclassType *      vnlFFT = dynamic_cast<FFTDefaultSubclassType *>(fft.GetPointer());
   ITK_TEST_EXPECT_TRUE(vnlFFT != nullptr);
   ITK_EXERCISE_BASIC_OBJECT_METHODS(vnlFFT, VnlComplexToComplex1DFFTImageFilter, ComplexToComplex1DFFTImageFilter);
 
   // Register factory and verify override
   using FactoryType = itk::FFTImageFilterFactory<itk::VkComplexToComplex1DFFTImageFilter>;
-  typename FactoryType::Pointer factory = FactoryType::New();
+  typename FactoryType::Pointer factory{ FactoryType::New() };
   itk::ObjectFactoryBase::RegisterFactory(factory, itk::ObjectFactoryEnums::InsertionPosition::INSERT_AT_FRONT);
 
   fft = FFTBaseType::New();

@@ -82,11 +82,11 @@ itkVkHalfHermitianFFTImageFilterTest(int argc, char * argv[])
       // will succeed with Bluestein's Algorithm implementation in VkFFT, though
       // with less precision.
 
-      float valueTolerance = (mySize == 17 || mySize == 19) ? 1e-5 : 1e-6;
+      float valueTolerance{ (mySize == 17 || mySize == 19) ? 1e-5f : 1e-6f };
 
       size.Fill(0);
       size[0] = mySize;
-      bool xIsOdd = (mySize % 2 == 1);
+      bool xIsOdd{ mySize % 2 == 1 };
 
       typename RealImageType::Pointer realImage{ RealImageType::New() };
       realImage->SetRegions(size);
@@ -128,7 +128,7 @@ itkVkHalfHermitianFFTImageFilterTest(int argc, char * argv[])
       forwardFilter->Update();
       typename ComplexImageType::Pointer        output{ forwardFilter->GetOutput() };
       const typename ComplexImageType::SizeType outputSize{ output->GetLargestPossibleRegion().GetSize() };
-      const int                                 desiredOutputSize = mySize / 2 + 1;
+      const int                                 desiredOutputSize{ mySize / 2 + 1 };
       if (outputSize[0] != desiredOutputSize)
       {
         std::cout << "Size is " << outputSize[0] << " but should be " << desiredOutputSize << "." << std::endl;

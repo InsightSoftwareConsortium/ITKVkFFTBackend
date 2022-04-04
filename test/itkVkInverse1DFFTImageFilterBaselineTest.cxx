@@ -37,11 +37,11 @@ doTest(const char * inputRealFullImage, const char * inputImaginaryFullImage, co
   using JoinFilterType = itk::ComposeImageFilter<ImageType, ComplexImageType>;
   using WriterType = itk::ImageFileWriter<ImageType>;
 
-  typename ReaderType::Pointer     readerReal = ReaderType::New();
-  typename ReaderType::Pointer     readerImag = ReaderType::New();
-  typename FFTType::Pointer        fft = FFTType::New();
-  typename JoinFilterType::Pointer joinFilter = JoinFilterType::New();
-  typename WriterType::Pointer     writer = WriterType::New();
+  typename ReaderType::Pointer     readerReal{ ReaderType::New() };
+  typename ReaderType::Pointer     readerImag{ ReaderType::New() };
+  typename FFTType::Pointer        fft{ FFTType::New() };
+  typename JoinFilterType::Pointer joinFilter{ JoinFilterType::New() };
+  typename WriterType::Pointer     writer{ WriterType::New() };
 
   readerReal->SetFileName(inputRealFullImage);
   readerImag->SetFileName(inputImaginaryFullImage);
@@ -76,7 +76,7 @@ itkVkInverse1DFFTImageFilterBaselineTest(int argc, char * argv[])
   using ImageType = typename FFTInverseType::OutputImageType;
 
   // Instantiate a filter to exercise basic object methods
-  typename FFTInverseType::Pointer fft = FFTInverseType::New();
+  typename FFTInverseType::Pointer fft{ FFTInverseType::New() };
   ITK_EXERCISE_BASIC_OBJECT_METHODS(fft, VkInverse1DFFTImageFilter, Inverse1DFFTImageFilter);
 
   return doTest<FFTInverseType>(argv[1], argv[2], argv[3]);

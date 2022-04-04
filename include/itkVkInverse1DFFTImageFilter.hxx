@@ -118,7 +118,7 @@ template <typename TInputImage, typename TOutputImage>
 typename VkInverse1DFFTImageFilter<TInputImage, TOutputImage>::SizeValueType
 VkInverse1DFFTImageFilter<TInputImage, TOutputImage>::GetSizeGreatestPrimeFactor() const
 {
-  return m_VkCommon.GetGreatestPrimeFactor();
+  return SizeValueType{ m_VkCommon.GetGreatestPrimeFactor() };
 }
 
 } // end namespace itk

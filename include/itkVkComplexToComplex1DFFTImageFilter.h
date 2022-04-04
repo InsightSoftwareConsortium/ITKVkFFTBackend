@@ -80,7 +80,7 @@ public:
   /** Run-time type information (and related methods). */
   itkTypeMacro(VkComplexToComplex1DFFTImageFilter, ComplexToComplex1DFFTImageFilter);
 
-  static constexpr unsigned int ImageDimension = InputImageType::ImageDimension;
+  static constexpr unsigned int ImageDimension{ InputImageType::ImageDimension };
 
   /** Determine whether local or global properties will be
    *  referenced for setting up GPU acceleration.
@@ -98,7 +98,7 @@ public:
   uint64_t
   GetDeviceID() const
   {
-    return m_UseVkGlobalConfiguration ? VkGlobalConfiguration::GetDeviceID() : m_DeviceID;
+    return uint64_t{ m_UseVkGlobalConfiguration ? VkGlobalConfiguration::GetDeviceID() : m_DeviceID };
   }
 
   SizeValueType
@@ -115,7 +115,7 @@ protected:
   PrintSelf(std::ostream & os, Indent indent) const override;
 
 private:
-  bool     m_UseVkGlobalConfiguration{true};
+  bool     m_UseVkGlobalConfiguration{ true };
   uint64_t m_DeviceID{ 0UL };
   VkCommon m_VkCommon{};
 };

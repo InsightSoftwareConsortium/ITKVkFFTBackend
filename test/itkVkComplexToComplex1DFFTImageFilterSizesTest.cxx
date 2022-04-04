@@ -68,7 +68,7 @@ itkVkComplexToComplex1DFFTImageFilterSizesTest(int argc, char * argv[])
       std::cerr << std::endl;
       return EXIT_FAILURE;
     }
-    const char * outputImageFileName = argv[1];
+    const char * outputImageFileName{ argv[1] };
 
     constexpr unsigned int Dimension{ 2 };
     using ComplexType = std::complex<double>;
@@ -76,7 +76,7 @@ itkVkComplexToComplex1DFFTImageFilterSizesTest(int argc, char * argv[])
 
     using FilterType = itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType>;
     typename FilterType::Pointer filter{ FilterType::New() };
-    //filter->SetDeviceID(0);
+    // filter->SetDeviceID(0);
     itk::VkGlobalConfiguration::SetDeviceID(0);
 
 
@@ -123,7 +123,7 @@ itkVkComplexToComplex1DFFTImageFilterSizesTest(int argc, char * argv[])
       // will succeed with Bluestein's Algorithm implementation in VkFFT, though
       // with less precision.
 
-      float valueTolerance = (mySize == 17 || mySize == 19) ? 1e-5 : 1e-6;
+      float valueTolerance{ (mySize == 17 || mySize == 19) ? 1e-5f : 1e-6f };
 
       size.Fill(0);
       size[0] = mySize;
@@ -139,7 +139,7 @@ itkVkComplexToComplex1DFFTImageFilterSizesTest(int argc, char * argv[])
 
       using FilterType = itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType>;
       typename FilterType::Pointer filter{ FilterType::New() };
-      //filter->SetDeviceID(0);
+      // filter->SetDeviceID(0);
       filter->SetInput(image);
 
       ITK_TRY_EXPECT_NO_EXCEPTION(filter->Update());

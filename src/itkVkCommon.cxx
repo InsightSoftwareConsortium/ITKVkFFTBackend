@@ -62,20 +62,20 @@ VkCommon::ConfigureBackend()
 {
   VkFFTResult resFFT{ VKFFT_SUCCESS };
 #if (VKFFT_BACKEND == CUDA)
-  CUresult    res = CUDA_SUCCESS;
-  cudaError_t res2 = cudaSuccess;
+  CUresult    res{ CUDA_SUCCESS };
+  cudaError_t res2{ cudaSuccess };
   res = cuInit(0);
   if (res != CUDA_SUCCESS)
-    return VKFFT_ERROR_FAILED_TO_INITIALIZE;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_INITIALIZE };
   res2 = cudaSetDevice((int)m_VkGPU.device_id);
   if (res2 != cudaSuccess)
-    return VKFFT_ERROR_FAILED_TO_SET_DEVICE_ID;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_SET_DEVICE_ID };
   res = cuDeviceGet(&m_VkGPU.device, (int)m_VkGPU.device_id);
   if (res != CUDA_SUCCESS)
-    return VKFFT_ERROR_FAILED_TO_GET_DEVICE;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
   res = cuCtxCreate(&m_VkGPU.context, 0, (int)m_VkGPU.device);
   if (res != CUDA_SUCCESS)
-    return VKFFT_ERROR_FAILED_TO_CREATE_CONTEXT;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_CONTEXT };
 
 #elif (VKFFT_BACKEND == OPENCL)
   cl_int resCL{ CL_SUCCESS };
@@ -86,17 +86,17 @@ VkCommon::ConfigureBackend()
   if (resCL != CL_SUCCESS)
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): clGetPlatformIDs returned " << resCL << std::endl;
-    return VKFFT_ERROR_FAILED_TO_INITIALIZE;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_INITIALIZE };
   }
   std::unique_ptr<cl_platform_id[]> platformsArray{ std::make_unique<cl_platform_id[]>(numPlatforms) };
   cl_platform_id *                  platforms{ &platformsArray[0] };
   if (!platforms)
-    return VKFFT_ERROR_MALLOC_FAILED;
+    return VkFFTResult{ VKFFT_ERROR_MALLOC_FAILED };
   resCL = clGetPlatformIDs(numPlatforms, platforms, nullptr);
   if (resCL != CL_SUCCESS)
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): clGetPlatformIDs returned " << resCL << std::endl;
-    return VKFFT_ERROR_FAILED_TO_INITIALIZE;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_INITIALIZE };
   }
   uint64_t k{ 0 };
   for (uint64_t j = 0; j < numPlatforms; j++)
@@ -106,12 +106,12 @@ VkCommon::ConfigureBackend()
     std::unique_ptr<cl_device_id[]> deviceListArray{ std::make_unique<cl_device_id[]>(numDevices) };
     cl_device_id *                  deviceList{ &deviceListArray[0] };
     if (!deviceList)
-      return VKFFT_ERROR_MALLOC_FAILED;
+      return VkFFTResult{ VKFFT_ERROR_MALLOC_FAILED };
     resCL = clGetDeviceIDs(platforms[j], CL_DEVICE_TYPE_ALL, numDevices, deviceList, nullptr);
     if (resCL != CL_SUCCESS)
     {
       std::cerr << __FILE__ "(" << __LINE__ << "): clGetDeviceIDs returned " << resCL << std::endl;
-      return VKFFT_ERROR_FAILED_TO_GET_DEVICE;
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
     }
     for (uint64_t i = 0; i < numDevices; i++)
     {
@@ -123,13 +123,13 @@ VkCommon::ConfigureBackend()
         if (resCL != CL_SUCCESS)
         {
           std::cerr << __FILE__ "(" << __LINE__ << "): clCreateContext returned " << resCL << std::endl;
-          return VKFFT_ERROR_FAILED_TO_CREATE_CONTEXT;
+          return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_CONTEXT };
         }
         m_VkGPU.commandQueue = clCreateCommandQueue(m_VkGPU.context, m_VkGPU.device, 0, &resCL);
         if (resCL != CL_SUCCESS)
         {
           std::cerr << __FILE__ "(" << __LINE__ << "): clCreateCommandQueue returned " << resCL << std::endl;
-          return VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_QUEUE;
+          return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_QUEUE };
         }
         k++;
       }
@@ -263,7 +263,7 @@ VkCommon::PerformFFT()
   VkFFTResult resFFT{ VKFFT_SUCCESS };
 
 #if (VKFFT_BACKEND == CUDA)
-  cudaError resCu = cudaSuccess;
+  cudaError resCu{ cudaSuccess };
 
   cuFloatComplex * inputGPUBuffer{ nullptr };
   cuFloatComplex * GPUBuffer{ nullptr };
@@ -276,7 +276,7 @@ VkCommon::PerformFFT()
   if (resCu != cudaSuccess)
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): cudaMalloc returned " << resCu << std::endl;
-    return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
   }
 
   m_VkFFTConfiguration.buffer = reinterpret_cast<void **>(&GPUBuffer);
@@ -299,7 +299,7 @@ VkCommon::PerformFFT()
       if (resCu != cudaSuccess)
       {
         std::cerr << __FILE__ "(" << __LINE__ << "): cudaMalloc returned " << resCu << std::endl;
-        return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+        return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
       }
 
       m_VkFFTConfiguration.inputBuffer = reinterpret_cast<void **>(&inputGPUBuffer);
@@ -314,7 +314,7 @@ VkCommon::PerformFFT()
       if (resCu != cudaSuccess)
       {
         std::cerr << __FILE__ "(" << __LINE__ << "): cudaMalloc returned " << resCu << std::endl;
-        return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+        return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
       }
       m_VkFFTConfiguration.outputBuffer = reinterpret_cast<void **>(&outputGPUBuffer);
     }
@@ -326,7 +326,7 @@ VkCommon::PerformFFT()
   if (resCu != cudaSuccess)
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): cudaMemcpy returned " << resCu << std::endl;
-    return VKFFT_ERROR_FAILED_TO_COPY;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
   }
 
 #elif (VKFFT_BACKEND == OPENCL)
@@ -348,7 +348,7 @@ VkCommon::PerformFFT()
     if (resCL != CL_SUCCESS)
     {
       std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
-      return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
     }
     m_VkFFTConfiguration.buffer = &GPUBuffer;
   }
@@ -360,7 +360,7 @@ VkCommon::PerformFFT()
     if (resCL != CL_SUCCESS)
     {
       std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
-      return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
     }
     m_VkFFTConfiguration.buffer = &GPUBuffer;
 
@@ -373,7 +373,7 @@ VkCommon::PerformFFT()
       if (resCL != CL_SUCCESS)
       {
         std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
-        return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+        return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
       }
       m_VkFFTConfiguration.inputBuffer = &inputGPUBuffer;
     }
@@ -386,7 +386,7 @@ VkCommon::PerformFFT()
       if (resCL != CL_SUCCESS)
       {
         std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
-        return VKFFT_ERROR_FAILED_TO_ALLOCATE;
+        return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
       }
       m_VkFFTConfiguration.outputBuffer = &outputGPUBuffer;
     }
@@ -405,7 +405,7 @@ VkCommon::PerformFFT()
   if (resCL != CL_SUCCESS)
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): clEnqueueWriteBuffer returned " << resCL << std::endl;
-    return VKFFT_ERROR_FAILED_TO_COPY;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
   }
 #endif
 
@@ -436,7 +436,7 @@ VkCommon::PerformFFT()
   if (resCu != cudaSuccess)
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): cudaDeviceSynchronize returned " << resCu << std::endl;
-    return VKFFT_ERROR_FAILED_TO_SYNCHRONIZE;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_SYNCHRONIZE };
   }
 
   // Copy result from GPU to CPU
@@ -445,7 +445,7 @@ VkCommon::PerformFFT()
   if (resCu != cudaSuccess)
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): cudaMemcpy returned " << resCu << std::endl;
-    return VKFFT_ERROR_FAILED_TO_COPY;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
   }
 
   // Release mem buffers
@@ -460,7 +460,7 @@ VkCommon::PerformFFT()
   if (resCL != CL_SUCCESS)
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): clFinish returned " << resCL << std::endl;
-    return VKFFT_ERROR_FAILED_TO_SYNCHRONIZE;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_SYNCHRONIZE };
   }
 
   // Copy result from GPU to CPU
@@ -476,7 +476,7 @@ VkCommon::PerformFFT()
   if (resCL != CL_SUCCESS)
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): clEnqueueReadBuffer returned " << resCL << std::endl;
-    return VKFFT_ERROR_FAILED_TO_COPY;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
   }
 
   clReleaseMemObject(inputGPUBuffer);
@@ -492,7 +492,8 @@ VkCommon::PerformFFT()
     // Compute complex conjugates for the R2FullH forward computation
     switch (m_VkParameters.P)
     {
-      case PrecisionEnum::FLOAT: {
+      case PrecisionEnum::FLOAT:
+      {
         using ComplexType = std::complex<float>;
         ComplexType * const outputCPUFloat{ reinterpret_cast<ComplexType *>(m_VkParameters.outputCPUBuffer) };
         for (uint64_t z = 0; z < m_VkFFTConfiguration.size[2]; ++z)
@@ -510,7 +511,8 @@ VkCommon::PerformFFT()
         }
       }
       break;
-      case PrecisionEnum::DOUBLE: {
+      case PrecisionEnum::DOUBLE:
+      {
         using ComplexType = std::complex<double>;
         ComplexType * const outputCPUDouble{ reinterpret_cast<ComplexType *>(m_VkParameters.outputCPUBuffer) };
         for (uint64_t z = 0; z < m_VkFFTConfiguration.size[2]; ++z)
@@ -555,7 +557,7 @@ VkCommon::ReleaseBackend()
     if (resCL != CL_SUCCESS)
     {
       std::cerr << __FILE__ "(" << __LINE__ << "): clReleaseCommandQueue returned " << resCL << std::endl;
-      return VKFFT_ERROR_FAILED_TO_RELEASE_COMMAND_QUEUE;
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_RELEASE_COMMAND_QUEUE };
     }
   }
 
@@ -565,7 +567,7 @@ VkCommon::ReleaseBackend()
     if (resCL != CL_SUCCESS)
     {
       std::cerr << __FILE__ "(" << __LINE__ << "): clReleaseContext returned " << resCL << std::endl;
-      return VKFFT_ERROR_FAILED_TO_RELEASE_COMMAND_QUEUE;
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_RELEASE_COMMAND_QUEUE };
     }
   }
 #endif

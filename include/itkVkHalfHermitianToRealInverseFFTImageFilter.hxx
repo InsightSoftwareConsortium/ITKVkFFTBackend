@@ -119,7 +119,7 @@ template <typename TInputImage, typename TOutputImage>
 typename VkHalfHermitianToRealInverseFFTImageFilter<TInputImage, TOutputImage>::SizeValueType
 VkHalfHermitianToRealInverseFFTImageFilter<TInputImage, TOutputImage>::GetSizeGreatestPrimeFactor() const
 {
-  return m_VkCommon.GetGreatestPrimeFactor();
+  return SizeValueType{ m_VkCommon.GetGreatestPrimeFactor() };
 }
 
 } // end namespace itk
