@@ -114,7 +114,7 @@ itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
     using ComplexImageType = itk::Image<ComplexType, Dimension>;
     typename ComplexImageType::SizeType size;
     // Skip trivial case where 1D image of size 1 fails.
-    for (int mySize = 2; mySize <= 20; ++mySize)
+    for (unsigned int mySize = 2; mySize <= 20; ++mySize)
     {
       // We expect that anything evenly divisible by a prime number greater than 13
       // will succeed with Bluestein's Algorithm implementation in VkFFT, though
@@ -147,7 +147,7 @@ itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
       {
         thisTestPassed = false;
       }
-      for (int i = 0; i < mySize; ++i)
+      for (unsigned int i = 0; i < mySize; ++i)
       {
         index[0] = i;
 
@@ -177,7 +177,7 @@ itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
         std::cout << "|difference| = " << std::abs(output2->GetPixel(index) - someValue) << std::endl;
         thisTestPassed = false;
       }
-      for (int i = 1; i < mySize; ++i)
+      for (unsigned int i = 1; i < mySize; ++i)
       {
         index[0] = i;
         if (std::abs(output2->GetPixel(index) - zeroValue) > valueTolerance)

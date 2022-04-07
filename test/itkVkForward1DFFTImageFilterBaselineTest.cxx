@@ -80,7 +80,6 @@ itkVkForward1DFFTImageFilterBaselineTest(int argc, char * argv[])
 
   using ImageType = itk::Image<PixelType, Dimension>;
   using FFTForwardType = itk::VkForward1DFFTImageFilter<ImageType>;
-  using ComplexImageType = typename FFTForwardType::OutputImageType;
 
   // Instantiate a filter to exercise basic object methods
   typename FFTForwardType::Pointer fft{ FFTForwardType::New() };
