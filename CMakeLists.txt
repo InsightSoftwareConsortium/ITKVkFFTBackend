@@ -58,6 +58,10 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   target_compile_options(VkFFT INTERFACE /wd4146 /wd4244 /wd4996)
 endif()
 
+# Cache content path so that it is available in test driver subproject
+# when built as an ITK remote module
+set(vulkan_lib_SOURCE_DIR "${vulkan_lib_SOURCE_DIR}" CACHE PATH "VkFFT content path")
+
 include_directories(SYSTEM ${vulkan_lib_SOURCE_DIR}/vkFFT)
 
 if(NOT ITK_SOURCE_DIR)
