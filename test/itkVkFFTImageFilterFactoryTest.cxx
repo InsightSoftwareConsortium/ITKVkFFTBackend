@@ -30,7 +30,7 @@
 // VkFFT backends through ITK object factory override methods
 
 int
-itkVkFFTImageFilterFactoryTest(int argc, char * argv[])
+itkVkFFTImageFilterFactoryTest(int, char *[])
 {
   using PixelType = double;
   const unsigned int Dimension = 2;

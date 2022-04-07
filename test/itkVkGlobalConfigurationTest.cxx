@@ -64,7 +64,7 @@ itkVkGlobalConfigurationTestProcedure()
 }
 
 int
-itkVkGlobalConfigurationTest(int argc, char * argv[])
+itkVkGlobalConfigurationTest(int, char *[])
 {
   using RealImageType = itk::Image<float, 2>;
   using ComplexImageType = itk::Image<std::complex<float>, 2>;

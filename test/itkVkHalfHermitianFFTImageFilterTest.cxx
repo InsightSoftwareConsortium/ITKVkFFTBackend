@@ -76,7 +76,7 @@ itkVkHalfHermitianFFTImageFilterTest(int argc, char * argv[])
     typename RealImageType::IndexType index;
     bool                              firstPass{ true };
     // Skip trivial case where 1D image of size 1 fails.
-    for (int mySize = 2; mySize <= 20; ++mySize, firstPass = false)
+    for (unsigned int mySize = 2; mySize <= 20; ++mySize, firstPass = false)
     {
       // We expect that anything evenly divisible by a prime number greater than 13
       // will succeed with Bluestein's Algorithm implementation in VkFFT, though
@@ -128,13 +128,13 @@ itkVkHalfHermitianFFTImageFilterTest(int argc, char * argv[])
       forwardFilter->Update();
       typename ComplexImageType::Pointer        output{ forwardFilter->GetOutput() };
       const typename ComplexImageType::SizeType outputSize{ output->GetLargestPossibleRegion().GetSize() };
-      const int                                 desiredOutputSize{ mySize / 2 + 1 };
+      const unsigned int                        desiredOutputSize{ mySize / 2 + 1 };
       if (outputSize[0] != desiredOutputSize)
       {
         std::cout << "Size is " << outputSize[0] << " but should be " << desiredOutputSize << "." << std::endl;
         thisTestPassed = false;
       }
-      for (int i = 0; i < desiredOutputSize; ++i)
+      for (unsigned int i = 0; i < desiredOutputSize; ++i)
       {
         index[0] = i;
         if (std::abs(output->GetPixel(index) - complexSomeValue) > valueTolerance)
@@ -166,7 +166,7 @@ itkVkHalfHermitianFFTImageFilterTest(int argc, char * argv[])
                   << ": |difference| = " << std::abs(output2->GetPixel(index) - realSomeValue) << std::endl;
         thisTestPassed = false;
       }
-      for (int i = 1; i < mySize; ++i)
+      for (unsigned int i = 1; i < mySize; ++i)
       {
         index[0] = i;
         if (std::abs(output2->GetPixel(index) - realZeroValue) > valueTolerance)
