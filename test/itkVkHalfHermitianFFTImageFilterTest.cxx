@@ -128,7 +128,7 @@ itkVkHalfHermitianFFTImageFilterTest(int argc, char * argv[])
       forwardFilter->Update();
       typename ComplexImageType::Pointer        output{ forwardFilter->GetOutput() };
       const typename ComplexImageType::SizeType outputSize{ output->GetLargestPossibleRegion().GetSize() };
-      const unsigned int                                 desiredOutputSize{ mySize / 2 + 1 };
+      const unsigned int                        desiredOutputSize{ mySize / 2 + 1 };
       if (outputSize[0] != desiredOutputSize)
       {
         std::cout << "Size is " << outputSize[0] << " but should be " << desiredOutputSize << "." << std::endl;

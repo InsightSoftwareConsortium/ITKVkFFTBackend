@@ -143,7 +143,7 @@ itkVkForwardInverse1DFFTImageFilterTest(int argc, char * argv[])
       std::cout << "Test " << ++testNumber << " (forward, size=" << mySize << ") ... "
                 << (thisTestPassed ? "passed." : "failed.") << std::endl;
       testsPassed &= thisTestPassed;
-       
+
       thisTestPassed = true;
       inverseFilter->SetInput(output);
       inverseFilter->Update();
