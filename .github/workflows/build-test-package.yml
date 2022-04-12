@@ -2,6 +2,10 @@ name: Build, test, package
 
 on: [push,pull_request]
 
+env:
+  itk-git-tag: "801370c025c7d296783481779a41c6d559c992c5"
+  itk-wheel-tag: "v5.3rc04"
+
 jobs:
   build-cxx:
     runs-on: ${{ matrix.os }}
@@ -17,7 +21,6 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "801370c025c7d296783481779a41c6d559c992c5"
             cmake-build-type: "MinSizeRel"
           - os: windows-2019
             c-compiler: "cl.exe"
@@ -26,7 +29,6 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "801370c025c7d296783481779a41c6d559c992c5"
             cmake-build-type: "Release"
           - os: macos-10.15
             c-compiler: "clang"
@@ -35,7 +37,6 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "801370c025c7d296783481779a41c6d559c992c5"
             cmake-build-type: "MinSizeRel"
 
     steps:
@@ -91,7 +92,7 @@ jobs:
         cd ..
         git clone https://github.com/InsightSoftwareConsortium/ITK.git
         cd ITK
-        git checkout ${{ matrix.itk-git-tag }}
+        git checkout ${{ env.itk-git-tag }}
 
     - name: Build OpenCL-SDK
       if: matrix.os == 'macos-10.15'
@@ -211,15 +212,14 @@ jobs:
         ctest --output-on-failure -j 2 -V -S dashboard.cmake -R "VkFFTBackend"
       shell: cmd
       
-  build-windows-python-packages:
+  build-windows-opencl-python-packages:
     runs-on: windows-2019
     strategy:
       max-parallel: 2
       matrix:
         python-version-minor: [7, 8, 9, 10]
         include:
-          - itk-python-git-tag: "v5.3rc04"
-            c-compiler: "cl.exe"
+          - c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
             opencl-icd-loader-git-tag: "v2021.04.29"
             opencl-headers-git-tag: "v2021.04.29"
@@ -243,7 +243,7 @@ jobs:
       run: |
         mv im ../../
         cd ../../im
-        curl -L "https://github.com/InsightSoftwareConsortium/ITKPythonBuilds/releases/download/${{ matrix.itk-python-git-tag }}/ITKPythonBuilds-windows.zip" -o "ITKPythonBuilds-windows.zip"
+        curl -L "https://github.com/InsightSoftwareConsortium/ITKPythonBuilds/releases/download/${{ env.itk-wheel-tag }}/ITKPythonBuilds-windows.zip" -o "ITKPythonBuilds-windows.zip"
         7z x ITKPythonBuilds-windows.zip -o/c/P -aoa -r
         curl -L "https://data.kitware.com/api/v1/file/5c0ad59d8d777f2179dd3e9c/download" -o "doxygen-1.8.11.windows.bin.zip"
         7z x doxygen-1.8.11.windows.bin.zip -o/c/P/doxygen -aoa -r
@@ -299,8 +299,6 @@ jobs:
       max-parallel: 2
       matrix:
         python-version: [37, 38, 39]
-        include:
-          - itk-python-git-tag: "v5.3rc04"
 
     steps:
     - uses: actions/checkout@v2
@@ -316,7 +314,7 @@ jobs:
 
     - name: 'Build 🐍 Python 📦 package'
       run: |
-        export ITK_PACKAGE_VERSION=${{ matrix.itk-python-git-tag }}
+        export ITK_PACKAGE_VERSION=${{ env.itk-wheel-tag }}
         ./wrapping/dockcross-manylinux-download-cache.sh
         ./wrapping/dockcross-manylinux-build-module-wheels-opencl.sh cp${{ matrix.python-version }}
 
@@ -330,9 +328,6 @@ jobs:
     runs-on: macos-10.15
     strategy:
       max-parallel: 2
-      matrix:
-        include:
-          - itk-python-git-tag: "v5.3rc04"
 
     steps:
     - uses: actions/checkout@v2
@@ -347,7 +342,7 @@ jobs:
 
     - name: 'Build 🐍 Python 📦 package'
       run: |
-        export ITK_PACKAGE_VERSION=${{ matrix.itk-python-git-tag }}
+        export ITK_PACKAGE_VERSION=${{ env.itk-wheel-tag }}
         export MACOSX_DEPLOYMENT_TARGET=10.9
         ./macpython-download-cache-and-build-module-wheels.sh
 
@@ -361,7 +356,7 @@ jobs:
     needs:
       - build-linux-opencl-python-packages
       - build-macos-opencl-python-packages
-      - build-windows-python-packages
+      - build-windows-opencl-python-packages
     runs-on: ubuntu-18.04
 
     steps:
