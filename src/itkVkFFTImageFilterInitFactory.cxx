@@ -36,7 +36,8 @@ VkFFTImageFilterInitFactory::VkFFTImageFilterInitFactory()
   VkFFTImageFilterInitFactory::RegisterFactories();
 }
 
-void VkFFTImageFilterInitFactory::RegisterFactories()
+void
+VkFFTImageFilterInitFactory::RegisterFactories()
 {
   itk::ObjectFactoryBase::RegisterFactory(FFTImageFilterFactory<VkComplexToComplex1DFFTImageFilter>::New(),
                                           itk::ObjectFactoryEnums::InsertionPosition::INSERT_AT_FRONT);
@@ -59,7 +60,7 @@ void VkFFTImageFilterInitFactory::RegisterFactories()
 // Undocumented API used to register during static initialization.
 // DO NOT CALL DIRECTLY.
 void VkFFTBackend_EXPORT
-VkFFTImageFilterInitFactoryRegister__Private()
+     VkFFTImageFilterInitFactoryRegister__Private()
 {
   VkFFTImageFilterInitFactory::RegisterFactories();
 }

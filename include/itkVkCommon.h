@@ -64,26 +64,28 @@ public:
 
   struct VkParameters
   {
-    uint64_t X = 0; // size of fastest varying dimension
-    uint64_t Y = 1; // size of second-fastest varying dimension, if any, otherwise 1.
-    uint64_t Z = 1; // size of third-fastest varying dimension, if any, otherwise 1.
+    uint64_t X{ 0 }; // size of fastest varying dimension
+    uint64_t Y{ 1 }; // size of second-fastest varying dimension, if any, otherwise 1.
+    uint64_t Z{ 1 }; // size of third-fastest varying dimension, if any, otherwise 1.
     uint64_t omitDimension[3] = { 0,
                                   0,
                                   0 }; // disable FFT for this dimension (0 - FFT enabled, 1 - FFT disabled). Default 0.
                                        // Doesn't work for R2C dimension 0 for now. Doesn't work with convolutions.
     PrecisionEnum P = PrecisionEnum::FLOAT; // type for real numbers
-    uint64_t      B = 1;                    // Number of batches -- always 1
-    uint64_t      N = 1;                    // Number of redundant iterations, for benchmarking -- always 1.
-    FFTEnum       fft = FFTEnum::C2C;       // ComplexToComplex, RealToHalfHermetian, RealToFullHermetian
-    uint64_t      PSize = 4; // sizeof(float), sizeof(double), or sizeof(half) according to VkParameters.P.
-    DirectionEnum I =
-      DirectionEnum::FORWARD; // forward or inverse transformation. (R2HalfH inverse is aka HalfH2R, etc.)
-    NormalizationEnum normalized =
-      NormalizationEnum::UNNORMALIZED;  // Whether inverse transformation should be divided by array size
-    const void * inputCPUBuffer = 0;    // input buffer in CPU memory
-    uint64_t     inputBufferBytes = 0;  // number of bytes in inputCPUBuffer
-    void *       outputCPUBuffer = 0;   // output buffer in CPU memory
-    uint64_t     outputBufferBytes = 0; // number of bytes in outputCPUBuffer
+    uint64_t      B{ 1 };                   // Number of batches -- always 1
+    uint64_t      N{ 1 };                   // Number of redundant iterations, for benchmarking -- always 1.
+    FFTEnum       fft{ FFTEnum::C2C };      // ComplexToComplex, RealToHalfHermetian, RealToFullHermetian
+    uint64_t      PSize{ 4 }; // sizeof(float), sizeof(double), or sizeof(half) according to VkParameters.P.
+    DirectionEnum I{
+      DirectionEnum::FORWARD
+    }; // forward or inverse transformation. (R2HalfH inverse is aka HalfH2R, etc.)
+    NormalizationEnum normalized{
+      NormalizationEnum::UNNORMALIZED
+    };                                       // Whether inverse transformation should be divided by array size
+    const void * inputCPUBuffer{ nullptr };  // input buffer in CPU memory
+    uint64_t     inputBufferBytes{ 0 };      // number of bytes in inputCPUBuffer
+    void *       outputCPUBuffer{ nullptr }; // output buffer in CPU memory
+    uint64_t     outputBufferBytes{ 0 };     // number of bytes in outputCPUBuffer
 
     bool
     operator!=(const VkParameters & rhs) const
@@ -99,23 +101,22 @@ public:
   struct VkGPU
   {
 #if (VKFFT_BACKEND == CUDA)
-    CUdevice device = 0;
-    CUcontext context = 0;
+    CUdevice  device{ 0 };
+    CUcontext context{ 0 };
 #elif (VKFFT_BACKEND == OPENCL)
-    cl_platform_id   platform = 0;
-    cl_device_id     device = 0;
-    cl_context       context = 0;
-    cl_command_queue commandQueue = 0;
+    cl_platform_id   platform{ 0 };
+    cl_device_id     device{ 0 };
+    cl_context       context{ 0 };
+    cl_command_queue commandQueue{ 0 };
 #endif
-    uint64_t         device_id = 0; // default value
+    uint64_t device_id{ 0 }; // default value
 
     bool
     operator!=(const VkGPU & rhs) const
     {
-#  if (VKFFT_BACKEND == CUDA)
-      return this->device != rhs.device || this->context != rhs.context ||
-          this->device_id != rhs.device_id;
-#  elif (VKFFT_BACKEND == OPENCL)
+#if (VKFFT_BACKEND == CUDA)
+      return this->device != rhs.device || this->context != rhs.context || this->device_id != rhs.device_id;
+#elif (VKFFT_BACKEND == OPENCL)
       return this->platform != rhs.platform || this->device != rhs.device || this->context != rhs.context ||
              this->commandQueue != rhs.commandQueue || this->device_id != rhs.device_id;
 #endif

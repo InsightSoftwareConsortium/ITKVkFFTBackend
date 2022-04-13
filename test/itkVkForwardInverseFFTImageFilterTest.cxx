@@ -77,7 +77,7 @@ itkVkForwardInverseFFTImageFilterTest(int argc, char * argv[])
     bool                              firstPass{ true };
 
     // Skip trivial case where 1D image of size 1 fails.
-    for (unsigned int mySize = 2; mySize <= 20; ++mySize, firstPass = false)
+    for (unsigned int mySize{ 2 }; mySize <= 20; ++mySize, firstPass = false)
     {
       // We expect that anything evenly divisible by a prime number greater than 13
       // will succeed with Bluestein's Algorithm implementation in VkFFT, though
@@ -131,7 +131,7 @@ itkVkForwardInverseFFTImageFilterTest(int argc, char * argv[])
         std::cout << "Size is " << outputSize[0] << " but should be " << mySize << "." << std::endl;
         thisTestPassed = false;
       }
-      for (unsigned int i = 0; i < mySize; ++i)
+      for (unsigned int i{ 0 }; i < mySize; ++i)
       {
         index[0] = i;
         if (std::abs(output->GetPixel(index) - complexSomeValue) > valueTolerance)
@@ -162,7 +162,7 @@ itkVkForwardInverseFFTImageFilterTest(int argc, char * argv[])
                   << ": |difference| = " << std::abs(output2->GetPixel(index) - realSomeValue) << std::endl;
         thisTestPassed = false;
       }
-      for (unsigned int i = 1; i < mySize; ++i)
+      for (unsigned int i{ 1 }; i < mySize; ++i)
       {
         index[0] = i;
         if (std::abs(output2->GetPixel(index) - realZeroValue) > valueTolerance)

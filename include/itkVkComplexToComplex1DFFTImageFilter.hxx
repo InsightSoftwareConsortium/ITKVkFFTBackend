@@ -86,7 +86,7 @@ VkComplexToComplex1DFFTImageFilter<TInputImage, TOutputImage>::GenerateData()
   vkParameters.normalized = vkParameters.I == VkCommon::DirectionEnum::INVERSE
                               ? VkCommon::NormalizationEnum::NORMALIZED
                               : VkCommon::NormalizationEnum::UNNORMALIZED;
-  for (size_t dim = 0; dim < ImageDimension; ++dim)
+  for (size_t dim{ 0 }; dim < ImageDimension; ++dim)
   {
     if (this->GetDirection() != dim)
     {

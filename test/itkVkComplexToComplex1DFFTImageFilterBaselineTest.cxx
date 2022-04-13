@@ -77,7 +77,7 @@ itkVkComplexToComplex1DFFTImageFilterBaselineTest(int argc, char * argv[])
   }
 
   using PixelType = double;
-  const unsigned int Dimension = 2;
+  const unsigned int Dimension{ 2 };
   using ComplexImageType = itk::Image<std::complex<PixelType>, Dimension>;
   using FFTInverseType = itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType>;
 

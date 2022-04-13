@@ -99,7 +99,7 @@ VkCommon::ConfigureBackend()
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_INITIALIZE };
   }
   uint64_t k{ 0 };
-  for (uint64_t j = 0; j < numPlatforms; j++)
+  for (uint64_t j{ 0 }; j < numPlatforms; j++)
   {
     cl_uint numDevices;
     resCL = clGetDeviceIDs(platforms[j], CL_DEVICE_TYPE_ALL, 0, nullptr, &numDevices);
@@ -113,7 +113,7 @@ VkCommon::ConfigureBackend()
       std::cerr << __FILE__ "(" << __LINE__ << "): clGetDeviceIDs returned " << resCL << std::endl;
       return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
     }
-    for (uint64_t i = 0; i < numDevices; i++)
+    for (uint64_t i{ 0 }; i < numDevices; i++)
     {
       if (k == m_VkGPU.device_id)
       {
@@ -163,7 +163,7 @@ VkCommon::ConfigureBackend()
   {
     m_VkFFTConfiguration.doublePrecision = 1;
   }
-  for (size_t dim = 0; dim < 3; ++dim)
+  for (size_t dim{ 0 }; dim < 3; ++dim)
   {
     m_VkFFTConfiguration.omitDimension[dim] = m_VkParameters.omitDimension[dim];
   }
@@ -496,9 +496,9 @@ VkCommon::PerformFFT()
       {
         using ComplexType = std::complex<float>;
         ComplexType * const outputCPUFloat{ reinterpret_cast<ComplexType *>(m_VkParameters.outputCPUBuffer) };
-        for (uint64_t z = 0; z < m_VkFFTConfiguration.size[2]; ++z)
+        for (uint64_t z{ 0 }; z < m_VkFFTConfiguration.size[2]; ++z)
         {
-          for (uint64_t y = 0; y < m_VkFFTConfiguration.size[1]; ++y)
+          for (uint64_t y{ 0 }; y < m_VkFFTConfiguration.size[1]; ++y)
           {
             const uint64_t offsetStart{ z * m_VkFFTConfiguration.bufferStride[1] +
                                         y * m_VkFFTConfiguration.bufferStride[0] };
@@ -515,9 +515,9 @@ VkCommon::PerformFFT()
       {
         using ComplexType = std::complex<double>;
         ComplexType * const outputCPUDouble{ reinterpret_cast<ComplexType *>(m_VkParameters.outputCPUBuffer) };
-        for (uint64_t z = 0; z < m_VkFFTConfiguration.size[2]; ++z)
+        for (uint64_t z{ 0 }; z < m_VkFFTConfiguration.size[2]; ++z)
         {
-          for (uint64_t y = 0; y < m_VkFFTConfiguration.size[1]; ++y)
+          for (uint64_t y{ 0 }; y < m_VkFFTConfiguration.size[1]; ++y)
           {
             const uint64_t offsetStart{ z * m_VkFFTConfiguration.bufferStride[1] +
                                         y * m_VkFFTConfiguration.bufferStride[0] };

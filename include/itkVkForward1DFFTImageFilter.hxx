@@ -81,7 +81,7 @@ VkForward1DFFTImageFilter<TInputImage, TOutputImage>::GenerateData()
   vkParameters.PSize = sizeof(RealType);
   vkParameters.I = VkCommon::DirectionEnum::FORWARD;
   vkParameters.normalized = VkCommon::NormalizationEnum::UNNORMALIZED;
-  for (size_t dim = 0; dim < ImageDimension; ++dim)
+  for (size_t dim{ 0 }; dim < ImageDimension; ++dim)
   {
     if (this->GetDirection() != dim)
     {
