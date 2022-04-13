@@ -132,6 +132,7 @@ struct FFTImageFilterTraits<VkForwardFFTImageFilter>
   using InputPixelType = TUnderlying;
   template <typename TUnderlying>
   using OutputPixelType = std::complex<TUnderlying>;
+  using FilterDimensions = std::integer_sequence<unsigned int, 3, 2, 1>;
 };
 
 } // namespace itk

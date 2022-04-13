@@ -22,6 +22,7 @@
 #include "itkComplexToComplex1DFFTImageFilter.h"
 #include "itkVkComplexToComplex1DFFTImageFilter.h"
 #include "itkVnlComplexToComplex1DFFTImageFilter.h"
+#include "itkVkFFTImageFilterInitFactory.h"
 
 #include "itkFFTImageFilterFactory.h"
 #include "itkTestingMacros.h"
@@ -62,6 +63,16 @@ itkVkFFTImageFilterFactoryTest(int, char *[])
   vnlFFT = dynamic_cast<FFTDefaultSubclassType *>(fft.GetPointer());
   ITK_TEST_EXPECT_TRUE(vnlFFT != nullptr);
   ITK_EXERCISE_BASIC_OBJECT_METHODS(vnlFFT, VnlComplexToComplex1DFFTImageFilter, ComplexToComplex1DFFTImageFilter);
+
+  // Verify factory initialization successfully registers factories
+  using FactoryInitializerType = itk::VkFFTImageFilterInitFactory;
+  FactoryInitializerType::RegisterFactories();
+
+  fft = FFTBaseType::New();
+  vkFFT = dynamic_cast<FFTVkSubclassType *>(fft.GetPointer());
+  ITK_TEST_EXPECT_TRUE(vkFFT != nullptr);
+  ITK_EXERCISE_BASIC_OBJECT_METHODS(vkFFT, VkComplexToComplex1DFFTImageFilter, ComplexToComplex1DFFTImageFilter);
+
 
   return EXIT_SUCCESS;
 }
