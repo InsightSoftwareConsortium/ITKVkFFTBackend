@@ -34,7 +34,7 @@ int
 itkVkFFTImageFilterFactoryTest(int, char *[])
 {
   using PixelType = double;
-  const unsigned int Dimension = 2;
+  const unsigned int Dimension{ 2 };
   using ComplexImageType = itk::Image<std::complex<PixelType>, Dimension>;
   using FFTBaseType = itk::ComplexToComplex1DFFTImageFilter<ComplexImageType>;
   using FFTDefaultSubclassType = itk::VnlComplexToComplex1DFFTImageFilter<ComplexImageType>;
