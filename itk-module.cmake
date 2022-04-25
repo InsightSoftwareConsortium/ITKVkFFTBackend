@@ -5,8 +5,6 @@ file(READ "${MY_CURRENT_DIR}/README.rst" DOCUMENTATION)
 
 # itk_module() defines the module dependencies in VkFFTBackend
 # VkFFTBackend depends on ITKCommon
-# The testing module in VkFFTBackend depends on ITKTestKernel
-# and ITKMetaIO(besides VkFFTBackend and ITKCore)
 # By convention those modules outside of ITK are not prefixed with
 # ITK.
 
@@ -16,11 +14,14 @@ itk_module(VkFFTBackend
     ITKCommon
     ITKStatistics
     ITKFFT
+    ITKRegistrationCommon
+    ITKConvolution
   COMPILE_DEPENDS
     ITKImageSources
+    ITKSmoothing
   TEST_DEPENDS
     ITKTestKernel
-    ITKMetaIO
+    ITKIOImageBase
     ITKImageCompose
     ITKImageIntensity
   DESCRIPTION
