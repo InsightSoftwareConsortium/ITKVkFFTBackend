@@ -11,6 +11,8 @@ set(VkFFTBackendTests
   itkVkGlobalConfigurationTest.cxx
   itkVkHalfHermitianFFTImageFilterTest.cxx
   itkVkInverse1DFFTImageFilterBaselineTest.cxx
+  itkVkMultiResolutionPyramidImageFilterTest.cxx
+  itkVkMultiResolutionPyramidImageFilterFactoryTest.cxx
   )
 
 include_directories(${VkFFTBackend_INCLUDE_DIRS})
@@ -95,3 +97,35 @@ itk_add_test(NAME itkVkFFTImageFilterFactoryTest
 itk_add_test(NAME itkVkGlobalConfigurationTest
   COMMAND VkFFTBackendTestDriver
   itkVkGlobalConfigurationTest)
+
+itk_add_test(NAME itkVkMultiResolutionPyramidImageFilterTest
+  COMMAND VkFFTBackendTestDriver
+  --compare
+    DATA{Baseline/itkVkMultiResolutionPyramidImageFilterTest0.mha}
+    ${ITK_TEST_OUTPUT_DIR}/itkVkMultiResolutionPyramidImageFilterTest0.mha
+  --compare
+    DATA{Baseline/itkVkMultiResolutionPyramidImageFilterTest1.mha}
+    ${ITK_TEST_OUTPUT_DIR}/itkVkMultiResolutionPyramidImageFilterTest1.mha
+  --compare
+    DATA{Baseline/itkVkMultiResolutionPyramidImageFilterTest2.mha}
+    ${ITK_TEST_OUTPUT_DIR}/itkVkMultiResolutionPyramidImageFilterTest2.mha
+  --compare
+    DATA{Baseline/itkVkMultiResolutionPyramidImageFilterTest3.mha}
+    ${ITK_TEST_OUTPUT_DIR}/itkVkMultiResolutionPyramidImageFilterTest3.mha
+  --compare
+    DATA{Baseline/itkVkMultiResolutionPyramidImageFilterTest4.mha}
+    ${ITK_TEST_OUTPUT_DIR}/itkVkMultiResolutionPyramidImageFilterTest4.mha
+  itkVkMultiResolutionPyramidImageFilterTest
+  DATA{Input/TreeBarkTexture.png}
+  ${ITK_TEST_OUTPUT_DIR}/itkVkMultiResolutionPyramidImageFilterTest
+  10 # kernelRadiusThreshold dim 0
+  12 # kernelRadiusThreshold dim 1
+  1  # threshold dimension
+  0 # useShrinkFilter
+  5 # numLevels
+)
+
+itk_add_test(NAME itkVkMultiResolutionPyramidImageFilterFactoryTest
+  COMMAND VkFFTBackendTestDriver
+  itkVkMultiResolutionPyramidImageFilterFactoryTest
+   )
