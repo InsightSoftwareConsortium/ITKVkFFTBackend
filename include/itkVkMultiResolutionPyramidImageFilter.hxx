@@ -25,7 +25,7 @@
 #include "itkResampleImageFilter.h"
 #include "itkShrinkImageFilter.h"
 #include "itkIdentityTransform.h"
-
+#include "itkVkBlurringPerformanceMetric.h"
 #include "itkMath.h"
 
 namespace itk
@@ -138,16 +138,12 @@ VkMultiResolutionPyramidImageFilter<TInputImage, TOutputImage>::ComputeMetricVal
   const InputSizeType &  inputSize,
   const KernelSizeType & kernelRadius) const
 {
-  unsigned int totalKernelSize = 0;
-  float        metricValue = 1.0f;
+  KernelSizeType kernelSize;
   for (unsigned int dim = 0; dim < ImageDimension; ++dim)
   {
-    totalKernelSize += kernelRadius[dim] * 2 + 1;
-    metricValue *= inputSize[dim];
+    kernelSize[dim] = kernelRadius[dim] * 2 + 1;
   }
-  metricValue *= totalKernelSize;
-  metricValue = std::log10(metricValue);
-  return metricValue;
+  return VkBlurringPerformanceMetric<InputImageType, OutputImageType>::Compute(inputSize, kernelSize);
 }
 
 template <typename TInputImage, typename TOutputImage>
