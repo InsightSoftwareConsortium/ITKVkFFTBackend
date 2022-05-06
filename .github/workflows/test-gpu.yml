@@ -2,6 +2,9 @@ name: Test GPU
 
 on: [pull_request]
 
+env:
+  itk-git-tag: "801370c025c7d296783481779a41c6d559c992c5"
+
 jobs:
   build-test-gpu:
     runs-on: [self-hosted, gpu]
@@ -12,7 +15,6 @@ jobs:
             opencl-headers-git-tag: "v2021.04.29"
             opencl-version: 120
             vkfft-backend: 3
-            itk-git-tag: "ddef776afb46a6e135ba3c9f58a0e6e7e4a000be"
             cmake-build-type: "MinSizeRel"
             platform-name: "ubuntu-nvidia-gpu"
             os: ubuntu-20.04
@@ -51,7 +53,7 @@ jobs:
         cd ..
         git clone https://github.com/InsightSoftwareConsortium/ITK.git
         cd ITK
-        git checkout ${{ matrix.itk-git-tag }}
+        git checkout ${{ env.itk-git-tag }}
         
     - name: Build OpenCL-ICD-Loader
       run: |

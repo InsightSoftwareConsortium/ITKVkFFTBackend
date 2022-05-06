@@ -65,6 +65,7 @@ namespace itk
  * \sa DiscreteGaussianImageFilter
  * \sa FFTDiscreteGaussianImageFilter
  * \sa ShrinkImageFilter
+ * \sa VkBlurringPerformanceMetric
  *
  * \ingroup VkFFTBackend
  * \ingroup PyramidImageFilter
@@ -139,6 +140,8 @@ public:
    *  and may need to be adjusted to better match benchmarking results for
    *  particular hardware and expected image sizes so that nuances such as
    *  multithreading and GPU performance may be taken into account.
+   *
+   * \sa VkBlurringPerformanceMetric
    */
   itkSetMacro(MetricThreshold, float);
   itkGetMacro(MetricThreshold, float);
@@ -152,6 +155,7 @@ public:
     this->SetMetricThreshold(ComputeMetricValue(inputSize, kernelRadius));
   }
 
+  /** Compute the metric value for a given set of inputs */
   float
   ComputeMetricValue(const InputSizeType & inputSize, const KernelSizeType & kernelRadius) const;
 
@@ -181,10 +185,9 @@ protected:
   PrintSelf(std::ostream & os, Indent indent) const override;
 
 private:
-  float                              m_MetricThreshold = 8.0f;
+  float                                 m_MetricThreshold = 8.0f;
   typename SpatialSmootherType::Pointer spatialSmoother = SpatialSmootherType::New();
-  typename FFTSmootherType::Pointer              fftSmoother = FFTSmootherType::New();
-
+  typename FFTSmootherType::Pointer     fftSmoother = FFTSmootherType::New();
 };
 } // namespace itk
 

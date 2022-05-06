@@ -4,6 +4,7 @@ set(VkFFTBackendTests
   itkVkComplexToComplexFFTImageFilterTest.cxx
   itkVkComplexToComplex1DFFTImageFilterBaselineTest.cxx
   itkVkComplexToComplex1DFFTImageFilterSizesTest.cxx
+  itkVkDiscreteGaussianImageFilterTest.cxx
   itkVkFFTImageFilterFactoryTest.cxx
   itkVkForwardInverseFFTImageFilterTest.cxx
   itkVkForwardInverse1DFFTImageFilterTest.cxx
@@ -129,3 +130,28 @@ itk_add_test(NAME itkVkMultiResolutionPyramidImageFilterFactoryTest
   COMMAND VkFFTBackendTestDriver
   itkVkMultiResolutionPyramidImageFilterFactoryTest
    )
+
+itk_add_test(NAME itkVkDiscreteGaussianImageFilterTest
+  COMMAND VkFFTBackendTestDriver
+  --compare
+    DATA{Baseline/itkVkDiscreteGaussianImageFilterTestOutput.mha}
+    ${ITK_TEST_OUTPUT_DIR}/itkVkDiscreteGaussianImageFilterTestOutput.mha    
+  itkVkDiscreteGaussianImageFilterTest
+    DATA{Input/TreeBarkTexture.png}    
+    ${ITK_TEST_OUTPUT_DIR}/itkVkDiscreteGaussianImageFilterTestOutput.mha
+    0   # Expect spatial
+    8.0 # Threshold for FFT to run
+    2.0 # Sigma
+  )
+itk_add_test(NAME itkVkDiscreteGaussianImageFilterTest2
+  COMMAND VkFFTBackendTestDriver
+  --compare
+    DATA{Baseline/itkVkDiscreteGaussianImageFilterTestOutput.mha}
+    ${ITK_TEST_OUTPUT_DIR}/itkVkDiscreteGaussianImageFilterTestOutput2.mha
+  itkVkDiscreteGaussianImageFilterTest
+    DATA{Input/TreeBarkTexture.png}    
+    ${ITK_TEST_OUTPUT_DIR}/itkVkDiscreteGaussianImageFilterTestOutput2.mha
+    1   # Expect FFT
+    2.0 # Lower threshold for FFT to run
+    2.0 # Sigma
+  )
