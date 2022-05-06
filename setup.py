@@ -12,7 +12,7 @@ except ImportError:
 
 setup(
     name="itk-vkfft",
-    version="0.1.5",
+    version="0.1.6",
     author="Insight Software Consortium",
     author_email="itk+community@discourse.itk.org",
     packages=["itk"],
