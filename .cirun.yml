@@ -17,3 +17,20 @@ runners:
     # Add a label to match runs-on param in Github Actions yml files
     labels:
       - gpu
+  
+  - name: notebook-gpu-runner
+    # Cloud Provider: Amazon Web Services
+    cloud: aws
+    # NVIDIA GPU
+    instance_type: g4dn.xlarge
+    # Custom-defined Ubuntu AMI with AMD drivers and build tools pre-installed
+    machine_image: ami-0328487742df7e739
+    region: us-east-2
+    preemptible: false
+    # Relevant workflow file
+    workflow: .github/workflows/test-notebooks.yml
+    # Provision 1 runner for ubuntu testing for now
+    count: 1
+    # Add a label to match runs-on param in Github Actions yml files
+    labels:
+      - notebook-gpu
