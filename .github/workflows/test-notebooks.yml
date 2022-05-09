@@ -20,7 +20,7 @@ jobs:
         run: |
           python3 --version
           python3 -m pip install --upgrade pip
-          python3 -m pip install itk-vkfft pytest nbmake
+          python3 -m pip install itk-vkfft tqdm pytest nbmake
           python3 -m pip list
           python3 -c "import itk; itk.auto_progress(2); print(itk.VkForwardFFTImageFilter.values())"
       - name: Test notebooks
