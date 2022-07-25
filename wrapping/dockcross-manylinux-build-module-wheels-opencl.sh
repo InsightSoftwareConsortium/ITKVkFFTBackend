@@ -9,7 +9,13 @@
 #   scripts/dockcross-manylinux-build-module-wheels.sh cp39
 
 # Generate dockcross scripts
-docker run --rm dockcross/manylinux2014-x64:20211011-a315bdc > /tmp/dockcross-manylinux-x64
+
+MANYLINUX_VERSION="_2_28"
+IMAGE_TAG=20220715-9ce3707
+OPENCL_ICD_LOADER_TAG=v2021.04.29
+OPENCL_HEADERS_TAG=v2021.04.29
+
+docker run --rm dockcross/manylinux${MANYLINUX_VERSION}-x64:${IMAGE_TAG} > /tmp/dockcross-manylinux-x64
 chmod u+x /tmp/dockcross-manylinux-x64
 
 script_dir=$(cd $(dirname $0) || exit 1; pwd)
@@ -17,12 +23,12 @@ script_dir=$(cd $(dirname $0) || exit 1; pwd)
 if ! test -d ./OpenCL-ICD-Loader; then
   git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
   pushd OpenCL-ICD-Loader
-  git checkout v2021.04.29
+  git checkout ${OPENCL_ICD_LOADER_TAG}
   popd
   pushd OpenCL-ICD-Loader/inc
   git clone https://github.com/KhronosGroup/OpenCL-Headers
   pushd OpenCL-Headers
-  git checkout v2021.04.29
+  git checkout ${OPENCL_HEADERS_TAG}
   popd
   cp -r OpenCL-Headers/CL ./
   popd
