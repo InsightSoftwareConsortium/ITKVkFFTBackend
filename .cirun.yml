@@ -7,7 +7,7 @@ runners:
     # NVIDIA GPU
     instance_type: g4dn.xlarge
     # Custom-defined Ubuntu AMI with AMD drivers and build tools pre-installed
-    machine_image: ami-0328487742df7e739
+    machine_image: ami-04462a876c33e6acf
     region: us-east-2
     preemptible: false
     # Relevant workflow file
