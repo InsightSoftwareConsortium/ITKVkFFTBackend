@@ -3,8 +3,13 @@ name: Build, test, package
 on: [push,pull_request]
 
 env:
-  itk-git-tag: "d6acfd26bfcdec606d605beb1301bddfb17c05a6"
-  itk-wheel-tag: "v5.3rc04"
+  itk-git-tag: "835dc01388d22c4b4c9a46b01dbdfe394ec23511"
+  itk-wheel-tag: "v5.3rc04.post2"
+  opencl-icd-loader-git-tag: "v2021.04.29"
+  opencl-headers-git-tag: "v2021.04.29"
+  vkfft-backend: 3
+  opencl-version: 120
+
 
 jobs:
   build-cxx:
@@ -17,26 +22,14 @@ jobs:
           - os: ubuntu-18.04
             c-compiler: "gcc"
             cxx-compiler: "g++"
-            opencl-icd-loader-git-tag: "v2021.04.29"
-            opencl-headers-git-tag: "v2021.04.29"
-            opencl-version: 120
-            vkfft-backend: 3
             cmake-build-type: "MinSizeRel"
           - os: windows-2019
             c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
-            opencl-icd-loader-git-tag: "v2021.04.29"
-            opencl-headers-git-tag: "v2021.04.29"
-            opencl-version: 120
-            vkfft-backend: 3
             cmake-build-type: "Release"
           - os: macos-10.15
             c-compiler: "clang"
             cxx-compiler: "clang++"
-            opencl-icd-loader-git-tag: "v2021.04.29"
-            opencl-headers-git-tag: "v2021.04.29"
-            opencl-version: 120
-            vkfft-backend: 3
             cmake-build-type: "MinSizeRel"
 
     steps:
@@ -68,12 +61,12 @@ jobs:
         cd ..
         git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
         pushd OpenCL-ICD-Loader
-        git checkout ${{ matrix.opencl-icd-loader-git-tag }}
+        git checkout ${{ env.opencl-icd-loader-git-tag }}
         popd
         pushd OpenCL-ICD-Loader/inc
         git clone https://github.com/KhronosGroup/OpenCL-Headers
         pushd OpenCL-Headers
-        git checkout ${{ matrix.opencl-headers-git-tag }}
+        git checkout ${{ env.opencl-headers-git-tag }}
         popd
         cp -r OpenCL-Headers/CL ./
         popd
@@ -182,10 +175,10 @@ jobs:
         endif()
         file(TO_CMAKE_PATH "\${CTEST_DASHBOARD_ROOT}/OpenCL-ICD-Loader/inc" OpenCL_INCLUDE_DIR)
         find_library(OpenCL_LIBRARY OpenCL PATHS \${CTEST_DASHBOARD_ROOT}/OpenCL-ICD-Loader-build REQUIRED)
-        set(VKFFT_BACKEND ${{ matrix.vkfft-backend }} CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
+        set(VKFFT_BACKEND ${{ env.vkfft-backend }} CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
         set(dashboard_cache "
         VKFFT_BACKEND=\${VKFFT_BACKEND}
-        CL_TARGET_OPENCL_VERSION=${{ matrix.opencl-version }}
+        CL_TARGET_OPENCL_VERSION=${{ env.opencl-version }}
         OpenCL_INCLUDE_DIR:PATH=\${OpenCL_INCLUDE_DIR}
         OpenCL_LIBRARY:FILEPATH=\${OpenCL_LIBRARY}
         ITK_DIR:PATH=\${CTEST_DASHBOARD_ROOT}/ITK-build
@@ -221,8 +214,6 @@ jobs:
         include:
           - c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
-            opencl-icd-loader-git-tag: "v2021.04.29"
-            opencl-headers-git-tag: "v2021.04.29"
             cmake-build-type: "MinSizeRel"
 
     steps:
@@ -256,12 +247,12 @@ jobs:
         cd ..
         git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
         pushd OpenCL-ICD-Loader
-        git checkout ${{ matrix.opencl-icd-loader-git-tag }}
+        git checkout ${{ env.opencl-icd-loader-git-tag }}
         popd
         pushd OpenCL-ICD-Loader/inc
         git clone https://github.com/KhronosGroup/OpenCL-Headers
         pushd OpenCL-Headers
-        git checkout ${{ matrix.opencl-headers-git-tag }}
+        git checkout ${{ env.opencl-headers-git-tag }}
         popd
         cp -r OpenCL-Headers/CL ./
         popd
