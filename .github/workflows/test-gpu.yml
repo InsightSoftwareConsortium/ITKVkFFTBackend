@@ -3,7 +3,7 @@ name: Test GPU
 on: [pull_request]
 
 env:
-  itk-git-tag: "d6acfd26bfcdec606d605beb1301bddfb17c05a6"
+  itk-git-tag: "171fb2ba33a87041f99328a2f26612ff33aa9cc8"
 
 jobs:
   build-test-gpu:
