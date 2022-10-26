@@ -33,9 +33,7 @@ endif()
 include(FetchContent)
 add_definitions(-DVKFFT_BACKEND=${VKFFT_BACKEND} -DCL_TARGET_OPENCL_VERSION=120)
 set(vulkan_GIT_REPOSITORY "https://github.com/DTolm/VkFFT") # original source
-set(vulkan_GIT_TAG        "3aecc219153f97aaa46e613abbf430033eb27512")
-# set(vulkan_GIT_REPOSITORY "https://github.com/Leengit/VkFFT") # Kitware copy of original source
-# set(vulkan_GIT_TAG        "0c5ddfffe1af9ac96c21d4c38941f9b5481b73c3")
+set(vulkan_GIT_TAG        "v1.2.31")
 FetchContent_Declare(
   vulkan_lib
   GIT_REPOSITORY ${vulkan_GIT_REPOSITORY}
