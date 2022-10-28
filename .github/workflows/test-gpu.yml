@@ -101,6 +101,8 @@ jobs:
           \${CTEST_CUSTOM_WARNING_EXCEPTION}
           # macOS Azure VM Warning
           "ld: warning: text-based stub file"
+          # VkFFT benchmark warning
+          "warning: ignoring return value"
           )
         set(dashboard_no_clean 1)
         set(ENV{CC} ${{ matrix.c-compiler }})
