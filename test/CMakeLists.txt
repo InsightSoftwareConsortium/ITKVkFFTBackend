@@ -16,10 +16,6 @@ set(VkFFTBackendTests
   itkVkMultiResolutionPyramidImageFilterFactoryTest.cxx
   )
 
-include_directories(${VkFFTBackend_INCLUDE_DIRS})
-include_directories(SYSTEM ${vulkan_lib_SOURCE_DIR}/vkFFT)
-add_definitions(-DVKFFT_BACKEND=${VKFFT_BACKEND} -DCL_TARGET_OPENCL_VERSION=120)
-
 CreateTestDriver(VkFFTBackend
   "${VkFFTBackend-Test_LIBRARIES};${OpenCL_LIBRARY}"
   "${VkFFTBackendTests}"
