@@ -13,12 +13,12 @@ jobs:
         include:
           - opencl-icd-loader-git-tag: "v2021.04.29"
             opencl-headers-git-tag: "v2021.04.29"
-            opencl-version: 120
+            opencl-version: "120"
             vkfft-backend: 3
             cmake-build-type: "MinSizeRel"
             platform-name: "ubuntu-nvidia-gpu"
             os: ubuntu-20.04
-        
+
     steps:
 
     - name: Check OpenCL Devices
@@ -28,10 +28,10 @@ jobs:
       shell: bash
 
     - uses: actions/checkout@v2
-    
+
     - name: Get specific version of CMake, Ninja
       uses: lukka/get-cmake@v3.18.3
-    
+
     - name: Download OpenCL-ICD-Loader
       run: |
         cd ..
@@ -47,14 +47,14 @@ jobs:
         cp -r OpenCL-Headers/CL ./
         popd
       shell: bash
-      
+
     - name: Download ITK
       run: |
         cd ..
         git clone https://github.com/InsightSoftwareConsortium/ITK.git
         cd ITK
         git checkout ${{ env.itk-git-tag }}
-        
+
     - name: Build OpenCL-ICD-Loader
       run: |
         cd ..
@@ -70,7 +70,7 @@ jobs:
         cd ITK-build
         cmake -DBUILD_SHARED_LIBS:BOOL=ON -DCMAKE_BUILD_TYPE:STRING=${{ matrix.cmake-build-type }} -DBUILD_TESTING:BOOL=OFF -GNinja ../ITK
         ninja
-    
+
     - name: Fetch CTest driver script
       run: |
         curl -L https://raw.githubusercontent.com/InsightSoftwareConsortium/ITK/dashboard/itk_common.cmake -O
