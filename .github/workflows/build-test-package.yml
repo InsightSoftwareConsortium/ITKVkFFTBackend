@@ -8,7 +8,7 @@ env:
   opencl-icd-loader-git-tag: "v2021.04.29"
   opencl-headers-git-tag: "v2021.04.29"
   vkfft-backend: 3
-  opencl-version: 120
+  opencl-version: "120"
 
 
 jobs:
@@ -38,7 +38,7 @@ jobs:
     - name: Set up Python 3.8
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: "3.8"
 
     - name: Install build dependencies
       run: |
@@ -206,13 +206,13 @@ jobs:
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         ctest --output-on-failure -j 2 -V -S dashboard.cmake -R "VkFFTBackend"
       shell: cmd
-      
+
   build-windows-opencl-python-packages:
     runs-on: windows-2019
     strategy:
       max-parallel: 2
       matrix:
-        python-version-minor: [7, 8, 9, 10]
+        python-version-minor: ["7", "8", "9", "10"]
         include:
           - c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
@@ -243,7 +243,7 @@ jobs:
         curl -L "https://data.kitware.com/api/v1/file/5bbf87ba8d777f06b91f27d6/download/grep-win.zip" -o "grep-win.zip"
         7z x grep-win.zip -o/c/P/grep -aoa -r
       shell: bash
-      
+
     - name: Download OpenCL-ICD-Loader
       run: |
         cd ..
@@ -291,7 +291,7 @@ jobs:
     strategy:
       max-parallel: 2
       matrix:
-        python-version: [37, 38, 39, 310]
+        python-version: ["37", "38", "39", "310"]
 
     steps:
     - uses: actions/checkout@v2
@@ -325,7 +325,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    
+
     - name: 'Specific XCode version'
       run: |
         sudo xcode-select -s "/Applications/Xcode_13.2.1.app"
