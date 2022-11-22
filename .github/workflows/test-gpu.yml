@@ -3,7 +3,7 @@ name: Test GPU
 on: [pull_request]
 
 env:
-  itk-git-tag: "171fb2ba33a87041f99328a2f26612ff33aa9cc8"
+  itk-git-tag: "abf5fa10522a36bc51f42f20f426a622f42ed90d"
 
 jobs:
   build-test-gpu:
@@ -30,7 +30,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Get specific version of CMake, Ninja
-      uses: lukka/get-cmake@v3.18.3
+      uses: lukka/get-cmake@v3.22.2
 
     - name: Download OpenCL-ICD-Loader
       run: |

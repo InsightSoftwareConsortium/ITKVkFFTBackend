@@ -7,11 +7,14 @@
 # For example,
 #
 #   scripts/dockcross-manylinux-build-module-wheels.sh cp39
+#
+# Forked from
+# https://github.com/InsightSoftwareConsortium/ITKPythonPackage/blob/master/scripts/dockcross-manylinux-build-module-wheels.sh
 
 # Generate dockcross scripts
 
-MANYLINUX_VERSION="_2_28"
-IMAGE_TAG=20220715-9ce3707
+MANYLINUX_VERSION=${MANYLINUX_VERSION:=_2_28}
+IMAGE_TAG=${IMAGE_TAG:=20221108-102ebcc}
 OPENCL_ICD_LOADER_TAG=v2021.04.29
 OPENCL_HEADERS_TAG=v2021.04.29
 
@@ -20,6 +23,12 @@ chmod u+x /tmp/dockcross-manylinux-x64
 
 script_dir=$(cd $(dirname $0) || exit 1; pwd)
 
+mkdir -p $(pwd)/tools
+chmod 777 $(pwd)/tools
+# Build wheels
+mkdir -p dist
+
+# Build OpenCL-ICD-Loader before ITKVkFFTBackend
 if ! test -d ./OpenCL-ICD-Loader; then
   git clone https://github.com/KhronosGroup/OpenCL-ICD-Loader
   pushd OpenCL-ICD-Loader
@@ -40,8 +49,12 @@ if ! test -d ./OpenCL-ICD-Loader; then
 fi
 
 # Build wheels
-mkdir -p dist
-DOCKER_ARGS="-v $(pwd)/dist:/work/dist/ -v $script_dir/../ITKPythonPackage:/ITKPythonPackage -v $(pwd)/tools:/tools -v $(pwd)/OpenCL-ICD-Loader/inc/CL:/usr/include/CL -v $(pwd)/OpenCL-ICD-Loader-build/libOpenCL.so.1.2:/usr/lib64/libOpenCL.so.1 -v $(pwd)/OpenCL-ICD-Loader-build/libOpenCL.so.1.2:/usr/lib64/libOpenCL.so"
+DOCKER_ARGS="-v $(pwd)/dist:/work/dist/ -v $script_dir/../ITKPythonPackage:/ITKPythonPackage -v $(pwd)/tools:/tools"
+DOCKER_ARGS+=" -v $(pwd)/OpenCL-ICD-Loader/inc/CL:/usr/include/CL"
+DOCKER_ARGS+=" -v $(pwd)/OpenCL-ICD-Loader-build/libOpenCL.so.1.2:/usr/lib64/libOpenCL.so.1"
+DOCKER_ARGS+=" -v $(pwd)/OpenCL-ICD-Loader-build/libOpenCL.so.1.2:/usr/lib64/libOpenCL.so"
+DOCKER_ARGS+=" -e MANYLINUX_VERSION"
+
 /tmp/dockcross-manylinux-x64 \
   -a "$DOCKER_ARGS" \
   "/ITKPythonPackage/scripts/internal/manylinux-build-module-wheels.sh" "$@"
