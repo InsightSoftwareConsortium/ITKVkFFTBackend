@@ -76,7 +76,7 @@ public:
   itkNewMacro(Self);
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro(VkBlurringPerformanceMetric, LightObject);
+  itkOverrideGetNameOfClassMacro(VkBlurringPerformanceMetric);
 
   using ImageType = TImage;
   using KernelType = TKernel;

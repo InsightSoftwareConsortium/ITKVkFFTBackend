@@ -80,7 +80,7 @@ public:
   itkNewMacro(Self);
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro(VkForwardFFTImageFilter, ForwardFFTImageFilter);
+  itkOverrideGetNameOfClassMacro(VkForwardFFTImageFilter);
 
   static constexpr unsigned int ImageDimension{ InputImageType::ImageDimension };
 

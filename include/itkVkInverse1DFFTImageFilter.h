@@ -83,7 +83,7 @@ public:
   itkNewMacro(Self);
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro(VkInverse1DFFTImageFilter, Inverse1DFFTImageFilter);
+  itkOverrideGetNameOfClassMacro(VkInverse1DFFTImageFilter);
 
   static constexpr unsigned int ImageDimension{ InputImageType::ImageDimension };
 

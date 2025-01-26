@@ -52,7 +52,7 @@ public:
   itkFactorylessNewMacro(Self);
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro(VkFFTImageFilterInitFactory, LightObject);
+  itkOverrideGetNameOfClassMacro(VkFFTImageFilterInitFactory);
 
   /** Mimic factory interface for Python initialization  */
   static void
