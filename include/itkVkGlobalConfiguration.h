@@ -51,7 +51,7 @@ public:
   using ConstPointer = SmartPointer<const Self>;
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro(VkGlobalConfiguration, LightObject);
+  itkOverrideGetNameOfClassMacro(VkGlobalConfiguration);
 
   /** Default accelerated platform identifier */
   static void
