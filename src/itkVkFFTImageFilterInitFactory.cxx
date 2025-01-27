@@ -31,10 +31,7 @@
 
 namespace itk
 {
-VkFFTImageFilterInitFactory::VkFFTImageFilterInitFactory()
-{
-  VkFFTImageFilterInitFactory::RegisterFactories();
-}
+VkFFTImageFilterInitFactory::VkFFTImageFilterInitFactory() { VkFFTImageFilterInitFactory::RegisterFactories(); }
 
 void
 VkFFTImageFilterInitFactory::RegisterFactories()
@@ -60,7 +57,7 @@ VkFFTImageFilterInitFactory::RegisterFactories()
 // Undocumented API used to register during static initialization.
 // DO NOT CALL DIRECTLY.
 void VkFFTBackend_EXPORT
-     VkFFTImageFilterInitFactoryRegister__Private()
+VkFFTImageFilterInitFactoryRegister__Private()
 {
   VkFFTImageFilterInitFactory::RegisterFactories();
 }

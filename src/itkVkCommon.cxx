@@ -531,7 +531,7 @@ VkCommon::PerformFFT()
       }
       break;
     } // end switch (m_VkParameters.P)
-  }   // end if(m_VkParameters.fft == R2FullH && m_VkParameters.I == DirectionEnum::FORWARD)
+  } // end if(m_VkParameters.fft == R2FullH && m_VkParameters.I == DirectionEnum::FORWARD)
   deleteVkFFT(&app);
 
   return resFFT;
