@@ -18,9 +18,9 @@ jobs:
     strategy:
       max-parallel: 3
       matrix:
-        os: [ubuntu-20.04, windows-2022, macos-11]
+        os: [ubuntu-24.04, windows-2022, macos-14]
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-24.04
             c-compiler: "gcc"
             cxx-compiler: "g++"
             cmake-build-type: "MinSizeRel"
@@ -28,7 +28,7 @@ jobs:
             c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
             cmake-build-type: "Release"
-          - os: macos-11
+          - os: macos-14
             c-compiler: "clang"
             cxx-compiler: "clang++"
             cmake-build-type: "MinSizeRel"
@@ -36,10 +36,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Python 3.8
+    - name: Set up Python 3.9
       uses: actions/setup-python@v5
       with:
-        python-version: "3.8"
+        python-version: "3.9"
 
     - name: Install build dependencies
       run: |
@@ -50,7 +50,7 @@ jobs:
       uses: lukka/get-cmake@v3.22.2
 
     - name: Download OpenCL-SDK
-      if: matrix.os == 'macos-11'
+      if: matrix.os == 'macos-14'
       run: |
         cd ..
         git clone --recursive https://github.com/KhronosGroup/OpenCL-SDK.git
@@ -89,7 +89,7 @@ jobs:
         git checkout ${{ env.itk-git-tag }}
 
     - name: Build OpenCL-SDK
-      if: matrix.os == 'macos-11'
+      if: matrix.os == 'macos-14'
       run: |
         cd ..
         mkdir OpenCL-SDK-build
@@ -213,7 +213,7 @@ jobs:
     strategy:
       max-parallel: 2
       matrix:
-        python-version-minor: ["7", "8", "9", "10", "11"]
+        python-version-minor: ["9", "10", "11"]
         include:
           - c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
@@ -290,13 +290,13 @@ jobs:
       shell: cmd
 
     - name: Publish Python package as GitHub Artifact
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: WindowsWheel3.${{ matrix.python-version-minor }}
         path: ../../im/dist
 
   build-linux-opencl-python-packages:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       max-parallel: 2
       matrix:
@@ -330,13 +330,13 @@ jobs:
         ./wrapping/dockcross-manylinux-build-module-wheels-opencl.sh cp${{ matrix.python-version }}
 
     - name: Publish Python package as GitHub Artifact
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: LinuxOpenCLWheel${{ matrix.python-version }}
         path: dist
 
   build-macos-opencl-python-packages:
-    runs-on: macos-11
+    runs-on: macos-14
     strategy:
       max-parallel: 2
 
@@ -359,11 +359,11 @@ jobs:
       run: |
         export ITK_PACKAGE_VERSION=${{ env.itk-wheel-tag }}
         export ITKPYTHONPACKAGE_TAG=${{ env.itk-python-package-tag }}
-        export MACOSX_DEPLOYMENT_TARGET=10.9
+        export MACOSX_DEPLOYMENT_TARGET=14
         ./macpython-download-cache-and-build-module-wheels.sh
 
     - name: Publish Python package as GitHub Artifact
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
         name: MacOSOpenCLWheels
         path: dist
@@ -373,7 +373,7 @@ jobs:
       - build-linux-opencl-python-packages
       - build-macos-opencl-python-packages
       - build-windows-opencl-python-packages
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Download Python Packages
