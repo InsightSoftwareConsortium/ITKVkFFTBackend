@@ -81,7 +81,7 @@ public:
     }; // forward or inverse transformation. (R2HalfH inverse is aka HalfH2R, etc.)
     NormalizationEnum normalized{
       NormalizationEnum::UNNORMALIZED
-    };                                       // Whether inverse transformation should be divided by array size
+    }; // Whether inverse transformation should be divided by array size
     const void * inputCPUBuffer{ nullptr };  // input buffer in CPU memory
     uint64_t     inputBufferBytes{ 0 };      // number of bytes in inputCPUBuffer
     void *       outputCPUBuffer{ nullptr }; // output buffer in CPU memory
