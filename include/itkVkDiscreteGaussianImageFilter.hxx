@@ -42,7 +42,7 @@ VkDiscreteGaussianImageFilter<TInputImage, TOutputImage>::GenerateInputRequested
   bool             wasPartiallyInside = inputRegion.Crop(inputPtr->GetLargestPossibleRegion());
   if (!wasPartiallyInside)
   {
-    itkExceptionMacro("Requested region is outside the largest possible region.")
+    itkExceptionMacro("Requested region is outside the largest possible region.");
   }
   inputPtr->SetRequestedRegion(inputRegion);
 }
