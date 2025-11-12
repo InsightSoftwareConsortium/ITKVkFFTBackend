@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.16.3)
 project(VkFFTBackend)
-set(CMAKE_CXX_STANDARD 14)
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(VkFFTBackend_LIBRARIES VkFFTBackend)
