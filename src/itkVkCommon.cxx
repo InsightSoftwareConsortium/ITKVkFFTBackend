@@ -82,7 +82,11 @@ VkCommon::ConfigureBackend()
   res = cuDeviceGet(&m_VkGPU.device, (int)m_VkGPU.device_id);
   if (res != CUDA_SUCCESS)
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
+#if CUDA_VERSION >= 13000
+  res = cuCtxCreate(&m_VkGPU.context, nullptr, 0, (int)m_VkGPU.device);
+#else
   res = cuCtxCreate(&m_VkGPU.context, 0, (int)m_VkGPU.device);
+#endif
   if (res != CUDA_SUCCESS)
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_CONTEXT };
 

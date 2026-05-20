@@ -19,7 +19,8 @@ set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL, 5 -
 add_compile_definitions(VKFFT_BACKEND=${VKFFT_BACKEND})
 
 if(VKFFT_BACKEND EQUAL 1)
-  # pass
+  find_package(CUDAToolkit REQUIRED)
+  list(APPEND VkFFTBackend_SYSTEM_INCLUDE_DIRS ${CUDAToolkit_INCLUDE_DIRS})
 elseif(VKFFT_BACKEND EQUAL 3)
   add_compile_definitions(CL_TARGET_OPENCL_VERSION=120)
 
