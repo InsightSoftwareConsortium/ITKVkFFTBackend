@@ -64,26 +64,43 @@ doTest(const char * inputRealFullImage, const char * inputImaginaryFullImage, co
   return EXIT_SUCCESS;
 }
 
+template <typename PrecisionType>
 int
-itkVkComplexToComplex1DFFTImageFilterBaselineTest(int argc, char * argv[])
+runVkComplexToComplex1DFFTImageFilterBaselineTest(const char * inputRealFullImage,
+                                                  const char * inputImaginaryFullImage,
+                                                  const char * outputImage)
 {
-  if (argc < 3)
-  {
-    std::cerr << "Missing Parameters." << std::endl;
-    std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
-    std::cerr << " inputImageRealFull inputImageImaginaryFull outputImage" << std::endl;
-    std::cerr << std::flush;
-    return EXIT_FAILURE;
-  }
-
-  using PixelType = double;
   const unsigned int Dimension{ 2 };
-  using ComplexImageType = itk::Image<std::complex<PixelType>, Dimension>;
+  using ComplexImageType = itk::Image<std::complex<PrecisionType>, Dimension>;
   using FFTInverseType = itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType>;
 
   // Instantiate a filter to exercise basic object methods
   typename FFTInverseType::Pointer fft{ FFTInverseType::New() };
   ITK_EXERCISE_BASIC_OBJECT_METHODS(fft, VkComplexToComplex1DFFTImageFilter, ComplexToComplex1DFFTImageFilter);
 
-  return doTest<FFTInverseType>(argv[1], argv[2], argv[3]);
+  return doTest<FFTInverseType>(inputRealFullImage, inputImaginaryFullImage, outputImage);
+}
+
+int
+itkVkComplexToComplex1DFFTImageFilterBaselineTest(int argc, char * argv[])
+{
+  if (argc < 5)
+  {
+    std::cerr << "Missing Parameters." << std::endl;
+    std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
+    std::cerr << " <float|double> inputImageRealFull inputImageImaginaryFull outputImage" << std::endl;
+    std::cerr << std::flush;
+    return EXIT_FAILURE;
+  }
+  const std::string precision{ argv[1] };
+  if (precision == "double")
+  {
+    return runVkComplexToComplex1DFFTImageFilterBaselineTest<double>(argv[2], argv[3], argv[4]);
+  }
+  if (precision == "float")
+  {
+    return runVkComplexToComplex1DFFTImageFilterBaselineTest<float>(argv[2], argv[3], argv[4]);
+  }
+  std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
+  return EXIT_FAILURE;
 }

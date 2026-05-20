@@ -25,6 +25,8 @@
 #include "itkTestingMacros.h"
 #include "itkVkGlobalConfiguration.h"
 
+#include <string>
+
 namespace
 {
 class ShowProgress : public itk::Command
@@ -55,23 +57,14 @@ public:
 };
 } // namespace
 
+template <typename PrecisionType>
 int
-itkVkComplexToComplex1DFFTImageFilterSizesTest(int argc, char * argv[])
+runVkComplexToComplex1DFFTImageFilterSizesTest(const char * outputImageFileName)
 {
   int testNumber{ 0 };
   {
-    if (argc != 2)
-    {
-      std::cerr << "Missing parameters." << std::endl;
-      std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
-      std::cerr << " outputImage";
-      std::cerr << std::endl;
-      return EXIT_FAILURE;
-    }
-    const char * outputImageFileName{ argv[1] };
-
     constexpr unsigned int Dimension{ 2 };
-    using ComplexType = std::complex<double>;
+    using ComplexType = std::complex<PrecisionType>;
     using ComplexImageType = itk::Image<ComplexType, Dimension>;
 
     using FilterType = itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType>;
@@ -112,7 +105,7 @@ itkVkComplexToComplex1DFFTImageFilterSizesTest(int argc, char * argv[])
   bool testsPassed{ true };
   {
     constexpr unsigned int Dimension{ 1 };
-    using RealType = float;
+    using RealType = PrecisionType;
     using ComplexType = std::complex<RealType>;
     using ComplexImageType = itk::Image<ComplexType, Dimension>;
     typename ComplexImageType::SizeType size;
@@ -202,5 +195,30 @@ itkVkComplexToComplex1DFFTImageFilterSizesTest(int argc, char * argv[])
     return EXIT_SUCCESS;
   }
 
+  return EXIT_FAILURE;
+}
+
+int
+itkVkComplexToComplex1DFFTImageFilterSizesTest(int argc, char * argv[])
+{
+  if (argc < 3)
+  {
+    std::cerr << "Missing parameters." << std::endl;
+    std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
+    std::cerr << " <float|double> outputImage";
+    std::cerr << std::endl;
+    return EXIT_FAILURE;
+  }
+  const std::string precision{ argv[1] };
+  const char *      outputImageFileName{ argv[2] };
+  if (precision == "double")
+  {
+    return runVkComplexToComplex1DFFTImageFilterSizesTest<double>(outputImageFileName);
+  }
+  if (precision == "float")
+  {
+    return runVkComplexToComplex1DFFTImageFilterSizesTest<float>(outputImageFileName);
+  }
+  std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
   return EXIT_FAILURE;
 }

@@ -17,6 +17,7 @@
  *=========================================================================*/
 
 #include <complex>
+#include <string>
 
 #include "itkVkComplexToComplex1DFFTImageFilter.h"
 #include "itkVkComplexToComplexFFTImageFilter.h"
@@ -63,11 +64,12 @@ itkVkGlobalConfigurationTestProcedure()
   return EXIT_SUCCESS;
 }
 
+template <typename PrecisionType>
 int
-itkVkGlobalConfigurationTest(int, char *[])
+runVkGlobalConfigurationTest()
 {
-  using RealImageType = itk::Image<float, 2>;
-  using ComplexImageType = itk::Image<std::complex<float>, 2>;
+  using RealImageType = itk::Image<PrecisionType, 2>;
+  using ComplexImageType = itk::Image<std::complex<PrecisionType>, 2>;
 
   itkVkGlobalConfigurationTestProcedure<itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType, ComplexImageType>>();
   itkVkGlobalConfigurationTestProcedure<itk::VkComplexToComplexFFTImageFilter<ComplexImageType, ComplexImageType>>();
@@ -81,4 +83,20 @@ itkVkGlobalConfigurationTest(int, char *[])
     itk::VkRealToHalfHermitianForwardFFTImageFilter<RealImageType, ComplexImageType>>();
 
   return EXIT_SUCCESS;
+}
+
+int
+itkVkGlobalConfigurationTest(int argc, char * argv[])
+{
+  const std::string precision{ (argc > 1) ? argv[1] : "float" };
+  if (precision == "double")
+  {
+    return runVkGlobalConfigurationTest<double>();
+  }
+  if (precision == "float")
+  {
+    return runVkGlobalConfigurationTest<float>();
+  }
+  std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
+  return EXIT_FAILURE;
 }

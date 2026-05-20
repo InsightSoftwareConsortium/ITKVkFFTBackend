@@ -23,6 +23,8 @@
 #include "itkImageFileWriter.h"
 #include "itkTestingMacros.h"
 
+#include <string>
+
 namespace
 {
 class ShowProgress : public itk::Command
@@ -53,22 +55,15 @@ public:
 };
 } // namespace
 
+template <typename PrecisionType>
 int
-itkVkForwardInverse1DFFTImageFilterTest(int argc, char * argv[])
+runVkForwardInverse1DFFTImageFilterTest()
 {
   int  testNumber{ 0 };
   bool testsPassed{ true };
   {
-    if (argc != 1)
-    {
-      std::cerr << "Missing parameters." << std::endl;
-      std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
-      std::cerr << std::endl;
-      return EXIT_FAILURE;
-    }
-
     constexpr unsigned int Dimension{ 1 };
-    using RealType = float;
+    using RealType = PrecisionType;
     using ComplexType = std::complex<RealType>;
     using RealImageType = itk::Image<RealType, Dimension>;
     using ComplexImageType = itk::Image<ComplexType, Dimension>;
@@ -183,5 +178,21 @@ itkVkForwardInverse1DFFTImageFilterTest(int argc, char * argv[])
     return EXIT_SUCCESS;
   }
 
+  return EXIT_FAILURE;
+}
+
+int
+itkVkForwardInverse1DFFTImageFilterTest(int argc, char * argv[])
+{
+  const std::string precision{ (argc > 1) ? argv[1] : "float" };
+  if (precision == "double")
+  {
+    return runVkForwardInverse1DFFTImageFilterTest<double>();
+  }
+  if (precision == "float")
+  {
+    return runVkForwardInverse1DFFTImageFilterTest<float>();
+  }
+  std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
   return EXIT_FAILURE;
 }

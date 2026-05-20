@@ -63,27 +63,41 @@ doTest(const char * inputImage, const char * outputImagePrefix)
   return EXIT_SUCCESS;
 }
 
+template <typename PrecisionType>
 int
-itkVkForward1DFFTImageFilterBaselineTest(int argc, char * argv[])
+runVkForward1DFFTImageFilterBaselineTest(const char * inputImage, const char * outputImagePrefix)
 {
-  if (argc < 3)
-  {
-    std::cerr << "Missing Parameters." << std::endl;
-    std::cerr << "Usage: " << argv[0];
-    std::cerr << " inputImage outputImagePrefix [backend]" << std::endl;
-    std::cerr << std::flush;
-    return EXIT_FAILURE;
-  }
-
-  using PixelType = double;
   const unsigned int Dimension{ 2 };
-
-  using ImageType = itk::Image<PixelType, Dimension>;
+  using ImageType = itk::Image<PrecisionType, Dimension>;
   using FFTForwardType = itk::VkForward1DFFTImageFilter<ImageType>;
 
   // Instantiate a filter to exercise basic object methods
   typename FFTForwardType::Pointer fft{ FFTForwardType::New() };
   ITK_EXERCISE_BASIC_OBJECT_METHODS(fft, VkForward1DFFTImageFilter, Forward1DFFTImageFilter);
 
-  return doTest<FFTForwardType>(argv[1], argv[2]);
+  return doTest<FFTForwardType>(inputImage, outputImagePrefix);
+}
+
+int
+itkVkForward1DFFTImageFilterBaselineTest(int argc, char * argv[])
+{
+  if (argc < 4)
+  {
+    std::cerr << "Missing Parameters." << std::endl;
+    std::cerr << "Usage: " << argv[0];
+    std::cerr << " <float|double> inputImage outputImagePrefix" << std::endl;
+    std::cerr << std::flush;
+    return EXIT_FAILURE;
+  }
+  const std::string precision{ argv[1] };
+  if (precision == "double")
+  {
+    return runVkForward1DFFTImageFilterBaselineTest<double>(argv[2], argv[3]);
+  }
+  if (precision == "float")
+  {
+    return runVkForward1DFFTImageFilterBaselineTest<float>(argv[2], argv[3]);
+  }
+  std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
+  return EXIT_FAILURE;
 }

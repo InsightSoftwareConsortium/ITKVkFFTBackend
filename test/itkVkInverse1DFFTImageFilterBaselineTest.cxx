@@ -56,27 +56,43 @@ doTest(const char * inputRealFullImage, const char * inputImaginaryFullImage, co
   return EXIT_SUCCESS;
 }
 
+template <typename PrecisionType>
 int
-itkVkInverse1DFFTImageFilterBaselineTest(int argc, char * argv[])
+runVkInverse1DFFTImageFilterBaselineTest(const char * inputRealFullImage,
+                                         const char * inputImaginaryFullImage,
+                                         const char * outputImage)
 {
-  if (argc < 3)
-  {
-    std::cerr << "Missing Parameters." << std::endl;
-    std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
-    std::cerr << " inputImagePrefix outputImage [backend]" << std::endl;
-    std::cerr << std::flush;
-    return EXIT_FAILURE;
-  }
-
-  using PixelType = double;
   const unsigned int Dimension{ 2 };
-
-  using ComplexImageType = itk::Image<std::complex<PixelType>, Dimension>;
+  using ComplexImageType = itk::Image<std::complex<PrecisionType>, Dimension>;
   using FFTInverseType = itk::VkInverse1DFFTImageFilter<ComplexImageType>;
 
   // Instantiate a filter to exercise basic object methods
   typename FFTInverseType::Pointer fft{ FFTInverseType::New() };
   ITK_EXERCISE_BASIC_OBJECT_METHODS(fft, VkInverse1DFFTImageFilter, Inverse1DFFTImageFilter);
 
-  return doTest<FFTInverseType>(argv[1], argv[2], argv[3]);
+  return doTest<FFTInverseType>(inputRealFullImage, inputImaginaryFullImage, outputImage);
+}
+
+int
+itkVkInverse1DFFTImageFilterBaselineTest(int argc, char * argv[])
+{
+  if (argc < 5)
+  {
+    std::cerr << "Missing Parameters." << std::endl;
+    std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
+    std::cerr << " <float|double> inputRealFullImage inputImaginaryFullImage outputImage" << std::endl;
+    std::cerr << std::flush;
+    return EXIT_FAILURE;
+  }
+  const std::string precision{ argv[1] };
+  if (precision == "double")
+  {
+    return runVkInverse1DFFTImageFilterBaselineTest<double>(argv[2], argv[3], argv[4]);
+  }
+  if (precision == "float")
+  {
+    return runVkInverse1DFFTImageFilterBaselineTest<float>(argv[2], argv[3], argv[4]);
+  }
+  std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
+  return EXIT_FAILURE;
 }

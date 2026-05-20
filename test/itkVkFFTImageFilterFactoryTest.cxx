@@ -30,12 +30,12 @@
 // Verify FFT interface classes can be instantiated with
 // VkFFT backends through ITK object factory override methods
 
+template <typename PrecisionType>
 int
-itkVkFFTImageFilterFactoryTest(int, char *[])
+runVkFFTImageFilterFactoryTest()
 {
-  using PixelType = double;
-  const unsigned int Dimension{ 2 };
-  using ComplexImageType = itk::Image<std::complex<PixelType>, Dimension>;
+  constexpr unsigned int Dimension{ 2 };
+  using ComplexImageType = itk::Image<std::complex<PrecisionType>, Dimension>;
   using FFTBaseType = itk::ComplexToComplex1DFFTImageFilter<ComplexImageType>;
   using FFTDefaultSubclassType = itk::VnlComplexToComplex1DFFTImageFilter<ComplexImageType>;
   using FFTVkSubclassType = itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType>;
@@ -75,4 +75,20 @@ itkVkFFTImageFilterFactoryTest(int, char *[])
 
 
   return EXIT_SUCCESS;
+}
+
+int
+itkVkFFTImageFilterFactoryTest(int argc, char * argv[])
+{
+  const std::string precision{ (argc > 1) ? argv[1] : "float" };
+  if (precision == "double")
+  {
+    return runVkFFTImageFilterFactoryTest<double>();
+  }
+  if (precision == "float")
+  {
+    return runVkFFTImageFilterFactoryTest<float>();
+  }
+  std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
+  return EXIT_FAILURE;
 }
