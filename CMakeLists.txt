@@ -11,16 +11,18 @@ if(NOT ITK_SOURCE_DIR)
   include(itk-module-init.cmake)
 endif()
 
+include(FetchContent)
+
 #### Set up VkFFT flags ####
 
-set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL")
+set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL, 5 - Metal")
 add_compile_definitions(VKFFT_BACKEND=${VKFFT_BACKEND})
 
 if(VKFFT_BACKEND EQUAL 1)
   # pass
 elseif(VKFFT_BACKEND EQUAL 3)
   add_compile_definitions(CL_TARGET_OPENCL_VERSION=120)
-  
+
   ## When this module is loaded by an app, load OpenCL too.
   set(VkFFTBackend_EXPORT_CODE_INSTALL "
   set(OpenCL_DIR \"${OpenCL_DIR}\")
@@ -35,8 +37,42 @@ elseif(VKFFT_BACKEND EQUAL 3)
   list(APPEND VkFFTBackend_SYSTEM_INCLUDE_DIRS ${OpenCL_INCLUDE_DIRS})
   get_filename_component(OpenCL_LIB_DIR ${OpenCL_LIBRARY} DIRECTORY)
   set(VkFFTBackend_SYSTEM_LIBRARY_DIRS ${OpenCL_LIB_DIR})
+elseif(VKFFT_BACKEND EQUAL 5)
+  if(NOT APPLE)
+    message(FATAL_ERROR "VKFFT_BACKEND=5 (Metal) requires Apple platforms (macOS/iOS).")
+  endif()
+
+  # metal-cpp requires C++17.
+  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+  # Apple's metal-cpp single-header bundle. Mirrored at bkaradzic/metal-cpp
+  # for stable FetchContent (the official Apple zip URL is versioned per
+  # macOS release and rotates).
+  set(metal_cpp_GIT_TAG "metal-cpp_macOS15_iOS18")
+  FetchContent_Declare(
+    metal_cpp
+    GIT_REPOSITORY "https://github.com/bkaradzic/metal-cpp.git"
+    GIT_TAG ${metal_cpp_GIT_TAG}
+    GIT_SHALLOW TRUE
+  )
+  FetchContent_MakeAvailable(metal_cpp)
+  list(APPEND VkFFTBackend_SYSTEM_INCLUDE_DIRS ${metal_cpp_SOURCE_DIR})
+
+  find_library(METAL_FRAMEWORK Metal REQUIRED)
+  find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
+  find_library(QUARTZCORE_FRAMEWORK QuartzCore REQUIRED)
+  list(APPEND VkFFTBackend_SYSTEM_LIBRARIES
+    ${METAL_FRAMEWORK} ${FOUNDATION_FRAMEWORK} ${QUARTZCORE_FRAMEWORK})
+
+  set(VkFFTBackend_EXPORT_CODE_INSTALL "
+  find_library(METAL_FRAMEWORK Metal REQUIRED)
+  find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
+  find_library(QUARTZCORE_FRAMEWORK QuartzCore REQUIRED)
+  ")
+  set(VkFFTBackend_EXPORT_CODE_BUILD "${VkFFTBackend_EXPORT_CODE_INSTALL}")
 else()
-  message(WARNING "ITKVkFFTBackend currently supports only CUDA or OpenCL backends.")
+  message(WARNING "ITKVkFFTBackend currently supports only CUDA, OpenCL, or Metal backends.")
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -59,12 +95,13 @@ endif()
 # By default we populate only the header library file `VkFFT.h`
 # without building other VkFFT targets.
 
-set(VkFFT_GIT_TAG "v1.2.31")
+set(VkFFT_GIT_TAG "v1.3.4")
 set(VkFFT_GIT_REPOSITORY "https://github.com/DTolm/VkFFT")
 set(VkFFT_HEADER_URL "https://raw.githubusercontent.com/DTolm/VkFFT/${VkFFT_GIT_TAG}/vkFFT/vkFFT.h")
 
-include(FetchContent)
-option(BUILD_VKFFT OFF)
+# v1.3.x split vkFFT.h into a multi-file tree, so the single-header URL
+# fetch no longer suffices; force the full-repo path when not overridden.
+option(BUILD_VKFFT "Fetch the full VkFFT repo (required for v1.3+ multi-file layout)" ON)
 if(BUILD_VKFFT)
   # Fetch the full VkFFT repo with the header-only library and build targets
   FetchContent_Declare(
@@ -97,5 +134,10 @@ if(NOT ITK_SOURCE_DIR)
 else()
   set(ITK_DIR ${CMAKE_BINARY_DIR})
   itk_module_impl()
+endif()
+
+if(VKFFT_BACKEND EQUAL 5)
+  target_link_libraries(VkFFTBackend PUBLIC
+    ${METAL_FRAMEWORK} ${FOUNDATION_FRAMEWORK} ${QUARTZCORE_FRAMEWORK})
 endif()
 

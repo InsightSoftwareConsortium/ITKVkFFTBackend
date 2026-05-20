@@ -23,5 +23,6 @@
 #define CUDA 1
 #define HIP 2
 #define OPENCL 3
+#define METAL 5
 
 #endif // itkVkDefinitions_h

@@ -15,11 +15,20 @@
  *  limitations under the License.
  *
  *=========================================================================*/
-#include "itkVkCommon.h"
 #include "itkVkDefinitions.h"
+#if (VKFFT_BACKEND == METAL)
+#  define NS_PRIVATE_IMPLEMENTATION
+#  define MTL_PRIVATE_IMPLEMENTATION
+#  define CA_PRIVATE_IMPLEMENTATION
+#  include "Foundation/Foundation.hpp"
+#  include "Metal/Metal.hpp"
+#  include "QuartzCore/QuartzCore.hpp"
+#endif
+#include "itkVkCommon.h"
 #include "vkFFT.h"
 #include "itkMacro.h"
 #include <complex>
+#include <cstring>
 #include <iostream>
 #include <memory>
 
@@ -139,6 +148,32 @@ VkCommon::ConfigureBackend()
       }
     }
   }
+#elif (VKFFT_BACKEND == METAL)
+  // Enumerate Metal devices and pick by device_id.
+  NS::Array * devices = MTL::CopyAllDevices();
+  if (devices == nullptr || devices->count() == 0)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): no Metal devices found" << std::endl;
+    if (devices != nullptr)
+      devices->release();
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_INITIALIZE };
+  }
+  if (m_VkGPU.device_id >= devices->count())
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): Metal device_id " << m_VkGPU.device_id << " out of range (have "
+              << devices->count() << ")" << std::endl;
+    devices->release();
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
+  }
+  m_VkGPU.device = devices->object<MTL::Device>(m_VkGPU.device_id);
+  m_VkGPU.device->retain();
+  devices->release();
+  m_VkGPU.queue = m_VkGPU.device->newCommandQueue();
+  if (m_VkGPU.queue == nullptr)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): newCommandQueue failed" << std::endl;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_QUEUE };
+  }
 #endif
 
   // Proceed by doing something similar to user_benchmark_VkFFT from
@@ -174,12 +209,16 @@ VkCommon::ConfigureBackend()
   // - created device, [uint64_t *bufferSize, VkBuffer *buffer, VkDeviceMemory* bufferDeviceMemory] - allocated GPU
   // memory FFT is performed on. [uint64_t *kernelSize, VkBuffer *kernel, VkDeviceMemory* kernelDeviceMemory] -
   // allocated GPU memory, where kernel for convolution is stored.
-  m_VkFFTConfiguration.device = &m_VkGPU.device;
 #if (VKFFT_BACKEND == CUDA)
-  // pass
+  m_VkFFTConfiguration.device = &m_VkGPU.device;
 #elif (VKFFT_BACKEND == OPENCL)
+  m_VkFFTConfiguration.device = &m_VkGPU.device;
   m_VkFFTConfiguration.platform = &m_VkGPU.platform;
   m_VkFFTConfiguration.context = &m_VkGPU.context;
+#elif (VKFFT_BACKEND == METAL)
+  // Metal's VkFFTConfiguration takes single pointers, not pointer-to-pointer.
+  m_VkFFTConfiguration.device = m_VkGPU.device;
+  m_VkFFTConfiguration.queue = m_VkGPU.queue;
 #endif
 
   m_VkFFTConfiguration.makeInversePlanOnly = (m_VkParameters.I == DirectionEnum::INVERSE);
@@ -407,6 +446,52 @@ VkCommon::PerformFFT()
     std::cerr << __FILE__ "(" << __LINE__ << "): clEnqueueWriteBuffer returned " << resCL << std::endl;
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
   }
+#elif (VKFFT_BACKEND == METAL)
+  // Metal shared-storage buffers are CPU-visible on Apple unified-memory systems,
+  // so host<->device transfers reduce to memcpy into/out of MTL::Buffer::contents().
+  MTL::Buffer * inputGPUBuffer{ nullptr };
+  MTL::Buffer * GPUBuffer{ nullptr };
+  MTL::Buffer * outputGPUBuffer{ nullptr };
+  const auto    storageMode = MTL::ResourceStorageModeShared;
+  if (m_VkParameters.fft == FFTEnum::C2C)
+  {
+    const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
+    GPUBuffer = m_VkGPU.device->newBuffer(bufferBytes, storageMode);
+    if (GPUBuffer == nullptr)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+    inputGPUBuffer = GPUBuffer;
+    outputGPUBuffer = GPUBuffer;
+    m_VkFFTConfiguration.buffer = &GPUBuffer;
+  }
+  else
+  {
+    const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
+    GPUBuffer = m_VkGPU.device->newBuffer(bufferBytes, storageMode);
+    if (GPUBuffer == nullptr)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+    m_VkFFTConfiguration.buffer = &GPUBuffer;
+
+    if (m_VkParameters.I == DirectionEnum::FORWARD)
+    {
+      const uint64_t inputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.inputBufferSize };
+      inputGPUBuffer = m_VkGPU.device->newBuffer(inputBufferBytes, storageMode);
+      if (inputGPUBuffer == nullptr)
+        return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+      outputGPUBuffer = GPUBuffer;
+      m_VkFFTConfiguration.inputBuffer = &inputGPUBuffer;
+    }
+    else
+    {
+      const uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
+      inputGPUBuffer = GPUBuffer;
+      outputGPUBuffer = m_VkGPU.device->newBuffer(outputBufferBytes, storageMode);
+      if (outputGPUBuffer == nullptr)
+        return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+      m_VkFFTConfiguration.outputBuffer = &outputGPUBuffer;
+    }
+  }
+
+  std::memcpy(inputGPUBuffer->contents(), m_VkParameters.inputCPUBuffer, m_VkParameters.inputBufferBytes);
 #endif
 
   // Initialize applications. This function loads shaders, creates pipeline and configures FFT based on configuration
@@ -425,6 +510,11 @@ VkCommon::PerformFFT()
   // pass
 #elif (VKFFT_BACKEND == OPENCL)
   launchParams.commandQueue = &m_VkGPU.commandQueue;
+#elif (VKFFT_BACKEND == METAL)
+  MTL::CommandBuffer *        metalCommandBuffer = m_VkGPU.queue->commandBuffer();
+  MTL::ComputeCommandEncoder * metalEncoder = metalCommandBuffer->computeCommandEncoder();
+  launchParams.commandBuffer = metalCommandBuffer;
+  launchParams.commandEncoder = metalEncoder;
 #endif
 
   resFFT = VkFFTAppend(&app, m_VkParameters.I == DirectionEnum::INVERSE ? 1 : -1, &launchParams);
@@ -484,6 +574,22 @@ VkCommon::PerformFFT()
   {
     // Release other buffer too
     clReleaseMemObject(outputGPUBuffer);
+  }
+#elif (VKFFT_BACKEND == METAL)
+  metalEncoder->endEncoding();
+  metalCommandBuffer->commit();
+  metalCommandBuffer->waitUntilCompleted();
+
+  std::memcpy(m_VkParameters.outputCPUBuffer, outputGPUBuffer->contents(), m_VkParameters.outputBufferBytes);
+
+  // The C2C in-place case aliases input/output to GPUBuffer; release once.
+  GPUBuffer->release();
+  if (m_VkParameters.fft != FFTEnum::C2C)
+  {
+    if (m_VkParameters.I == DirectionEnum::FORWARD)
+      inputGPUBuffer->release();
+    else
+      outputGPUBuffer->release();
   }
 #endif
 
@@ -569,6 +675,17 @@ VkCommon::ReleaseBackend()
       std::cerr << __FILE__ "(" << __LINE__ << "): clReleaseContext returned " << resCL << std::endl;
       return VkFFTResult{ VKFFT_ERROR_FAILED_TO_RELEASE_COMMAND_QUEUE };
     }
+  }
+#elif (VKFFT_BACKEND == METAL)
+  if (m_VkGPU.queue)
+  {
+    m_VkGPU.queue->release();
+    m_VkGPU.queue = nullptr;
+  }
+  if (m_VkGPU.device)
+  {
+    m_VkGPU.device->release();
+    m_VkGPU.device = nullptr;
   }
 #endif
 

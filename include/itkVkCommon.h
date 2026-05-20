@@ -21,6 +21,16 @@
 #include "VkFFTBackendExport.h"
 #include "itkVkDefinitions.h"
 #include "itkDataObject.h"
+#if (VKFFT_BACKEND == METAL)
+// Include metal-cpp headers BEFORE vkFFT.h. vkFFT.h internally defines
+// NS_/MTL_/CA_PRIVATE_IMPLEMENTATION and re-includes these — pre-including
+// here primes the header guards so vkFFT.h's re-include is a no-op, and
+// the metal-cpp storage symbols are emitted in only one TU (itkVkCommon.cxx,
+// which sets the *_PRIVATE_IMPLEMENTATION macros itself before this point).
+#  include "Foundation/Foundation.hpp"
+#  include "Metal/Metal.hpp"
+#  include "QuartzCore/QuartzCore.hpp"
+#endif
 #include "vkFFT.h"
 
 namespace itk
@@ -108,6 +118,9 @@ public:
     cl_device_id     device{ 0 };
     cl_context       context{ 0 };
     cl_command_queue commandQueue{ 0 };
+#elif (VKFFT_BACKEND == METAL)
+    MTL::Device *       device{ nullptr };
+    MTL::CommandQueue * queue{ nullptr };
 #endif
     uint64_t device_id{ 0 }; // default value
 
@@ -119,6 +132,10 @@ public:
 #elif (VKFFT_BACKEND == OPENCL)
       return this->platform != rhs.platform || this->device != rhs.device || this->context != rhs.context ||
              this->commandQueue != rhs.commandQueue || this->device_id != rhs.device_id;
+#elif (VKFFT_BACKEND == METAL)
+      return this->device != rhs.device || this->queue != rhs.queue || this->device_id != rhs.device_id;
+#else
+      return this->device_id != rhs.device_id;
 #endif
     }
   };
