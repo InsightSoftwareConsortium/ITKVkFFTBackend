@@ -132,7 +132,10 @@ VkCommon::ConfigureBackend()
       {
         m_VkGPU.platform = platforms[j];
         m_VkGPU.device = deviceList[i];
-        m_VkGPU.context = clCreateContext(NULL, 1, &m_VkGPU.device, NULL, NULL, &resCL);
+        const cl_context_properties contextProperties[]{
+          CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(m_VkGPU.platform), 0
+        };
+        m_VkGPU.context = clCreateContext(contextProperties, 1, &m_VkGPU.device, NULL, NULL, &resCL);
         if (resCL != CL_SUCCESS)
         {
           std::cerr << __FILE__ "(" << __LINE__ << "): clCreateContext returned " << resCL << std::endl;
