@@ -337,3 +337,29 @@ itk_add_test(NAME itkVkDiscreteGaussianImageFilterTest2Double
     2.0 # Sigma
   )
 _vkfft_disable_on_unsupported_fp64(itkVkDiscreteGaussianImageFilterTest2Double)
+
+# Disable every FFT-touching test when VKFFT_BACKEND=4 (Level Zero) is selected
+# but no Level Zero driver was detected at configure time (see the probe in the
+# top-level CMakeLists.txt). The lightweight factory / global-configuration
+# tests still run because they exercise no GPU code.
+if(VKFFT_BACKEND EQUAL 4 AND NOT VkFFTBackend_LEVEL_ZERO_RUNTIME_AVAILABLE)
+  foreach(_stem
+    itkVkComplexToComplexFFTImageFilterTest
+    itkVkComplexToComplex1DFFTImageFilterSizesTest
+    itkVkComplexToComplex1DFFTImageFilterBaselineTest
+    itkVkForward1DFFTImageFilterBaselineTest
+    itkVkInverse1DFFTImageFilterBaselineTest
+    itkVkForwardInverseFFTImageFilterTest
+    itkVkForwardInverse1DFFTImageFilterTest
+    itkVkHalfHermitianFFTImageFilterTest
+    itkVkMultiResolutionPyramidImageFilterTest
+    itkVkDiscreteGaussianImageFilterTest
+    itkVkDiscreteGaussianImageFilterTest2
+  )
+    foreach(_suffix Float Double)
+      if(TEST ${_stem}${_suffix})
+        set_tests_properties(${_stem}${_suffix} PROPERTIES DISABLED TRUE)
+      endif()
+    endforeach()
+  endforeach()
+endif()
