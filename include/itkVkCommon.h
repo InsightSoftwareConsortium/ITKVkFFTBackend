@@ -21,6 +21,9 @@
 #include "VkFFTBackendExport.h"
 #include "itkVkDefinitions.h"
 #include "itkDataObject.h"
+#if (VKFFT_BACKEND == LEVEL_ZERO)
+#  include <level_zero/ze_api.h>
+#endif
 #if (VKFFT_BACKEND == METAL)
 // Include metal-cpp headers BEFORE vkFFT.h. vkFFT.h internally defines
 // NS_/MTL_/CA_PRIVATE_IMPLEMENTATION and re-includes these — pre-including
@@ -118,6 +121,12 @@ public:
     cl_device_id     device{ 0 };
     cl_context       context{ 0 };
     cl_command_queue commandQueue{ 0 };
+#elif (VKFFT_BACKEND == LEVEL_ZERO)
+    ze_driver_handle_t        driver{ nullptr };
+    ze_device_handle_t        device{ nullptr };
+    ze_context_handle_t       context{ nullptr };
+    ze_command_queue_handle_t commandQueue{ nullptr };
+    uint32_t                  commandQueueID{ 0 };
 #elif (VKFFT_BACKEND == METAL)
     MTL::Device *       device{ nullptr };
     MTL::CommandQueue * queue{ nullptr };
@@ -132,6 +141,10 @@ public:
 #elif (VKFFT_BACKEND == OPENCL)
       return this->platform != rhs.platform || this->device != rhs.device || this->context != rhs.context ||
              this->commandQueue != rhs.commandQueue || this->device_id != rhs.device_id;
+#elif (VKFFT_BACKEND == LEVEL_ZERO)
+      return this->driver != rhs.driver || this->device != rhs.device || this->context != rhs.context ||
+             this->commandQueue != rhs.commandQueue || this->commandQueueID != rhs.commandQueueID ||
+             this->device_id != rhs.device_id;
 #elif (VKFFT_BACKEND == METAL)
       return this->device != rhs.device || this->queue != rhs.queue || this->device_id != rhs.device_id;
 #else

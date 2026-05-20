@@ -15,7 +15,7 @@ include(FetchContent)
 
 #### Set up VkFFT flags ####
 
-set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL, 5 - Metal")
+set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL, 4 - Level Zero, 5 - Metal")
 add_compile_definitions(VKFFT_BACKEND=${VKFFT_BACKEND})
 
 if(VKFFT_BACKEND EQUAL 1)
@@ -38,6 +38,29 @@ elseif(VKFFT_BACKEND EQUAL 3)
   list(APPEND VkFFTBackend_SYSTEM_INCLUDE_DIRS ${OpenCL_INCLUDE_DIRS})
   get_filename_component(OpenCL_LIB_DIR ${OpenCL_LIBRARY} DIRECTORY)
   set(VkFFTBackend_SYSTEM_LIBRARY_DIRS ${OpenCL_LIB_DIR})
+elseif(VKFFT_BACKEND EQUAL 4)
+  # oneAPI Level Zero loader (libze_loader) + headers (<level_zero/ze_api.h>).
+  # Installed by Intel's "level-zero" package on Linux/Windows; also shipped
+  # with the oneAPI Base Toolkit.
+  find_path(LevelZero_INCLUDE_DIR
+    NAMES level_zero/ze_api.h
+    HINTS ENV LEVEL_ZERO_ROOT ENV CMPLR_ROOT
+    PATH_SUFFIXES include)
+  find_library(LevelZero_LIBRARY
+    NAMES ze_loader
+    HINTS ENV LEVEL_ZERO_ROOT ENV CMPLR_ROOT
+    PATH_SUFFIXES lib lib64 lib/x64)
+  if(NOT LevelZero_INCLUDE_DIR OR NOT LevelZero_LIBRARY)
+    message(FATAL_ERROR "VKFFT_BACKEND=4 (Level Zero) requires the oneAPI Level Zero loader (ze_loader) and headers (level_zero/ze_api.h). Install the 'level-zero' package or set LEVEL_ZERO_ROOT.")
+  endif()
+  list(APPEND VkFFTBackend_SYSTEM_INCLUDE_DIRS ${LevelZero_INCLUDE_DIR})
+  list(APPEND VkFFTBackend_SYSTEM_LIBRARIES ${LevelZero_LIBRARY})
+
+  set(VkFFTBackend_EXPORT_CODE_INSTALL "
+  find_path(LevelZero_INCLUDE_DIR NAMES level_zero/ze_api.h)
+  find_library(LevelZero_LIBRARY NAMES ze_loader)
+  ")
+  set(VkFFTBackend_EXPORT_CODE_BUILD "${VkFFTBackend_EXPORT_CODE_INSTALL}")
 elseif(VKFFT_BACKEND EQUAL 5)
   if(NOT APPLE)
     message(FATAL_ERROR "VKFFT_BACKEND=5 (Metal) requires Apple platforms (macOS/iOS).")
@@ -73,7 +96,7 @@ elseif(VKFFT_BACKEND EQUAL 5)
   ")
   set(VkFFTBackend_EXPORT_CODE_BUILD "${VkFFTBackend_EXPORT_CODE_INSTALL}")
 else()
-  message(WARNING "ITKVkFFTBackend currently supports only CUDA, OpenCL, or Metal backends.")
+  message(WARNING "ITKVkFFTBackend currently supports only CUDA, OpenCL, Level Zero, or Metal backends.")
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -135,6 +158,11 @@ if(NOT ITK_SOURCE_DIR)
 else()
   set(ITK_DIR ${CMAKE_BINARY_DIR})
   itk_module_impl()
+endif()
+
+if(VKFFT_BACKEND EQUAL 4)
+  target_link_libraries(VkFFTBackend PUBLIC ${LevelZero_LIBRARY})
+  target_include_directories(VkFFTBackend SYSTEM PUBLIC ${LevelZero_INCLUDE_DIR})
 endif()
 
 if(VKFFT_BACKEND EQUAL 5)
