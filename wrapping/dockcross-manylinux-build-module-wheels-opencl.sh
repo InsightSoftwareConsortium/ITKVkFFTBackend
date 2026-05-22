@@ -14,9 +14,12 @@
 # Generate dockcross scripts
 
 MANYLINUX_VERSION=${MANYLINUX_VERSION:=_2_28}
-IMAGE_TAG=${IMAGE_TAG:=20221108-102ebcc}
-OPENCL_ICD_LOADER_TAG=v2021.04.29
-OPENCL_HEADERS_TAG=v2021.04.29
+# Match ITKPythonPackage v6.0b02's dockcross image, which ships a recent
+# enough `python -m build` to accept --verbose (the older 20221108 image
+# fails with "unrecognized arguments: --verbose").
+IMAGE_TAG=${IMAGE_TAG:=20260203-3dfb3ff}
+OPENCL_ICD_LOADER_TAG=${OPENCL_ICD_LOADER_TAG:=v2025.07.22}
+OPENCL_HEADERS_TAG=${OPENCL_HEADERS_TAG:=v2025.07.22}
 
 docker run --rm dockcross/manylinux${MANYLINUX_VERSION}-x64:${IMAGE_TAG} > /tmp/dockcross-manylinux-x64
 chmod u+x /tmp/dockcross-manylinux-x64
@@ -49,10 +52,22 @@ if ! test -d ./OpenCL-ICD-Loader; then
 fi
 
 # Build wheels
+#
+# Resolve the actual versioned libOpenCL.so filename produced by the
+# OpenCL-ICD-Loader build. v2021.04.29 produced libOpenCL.so.1.2; the
+# v2025.07.22 build produces libOpenCL.so.1.0.0. Bind-mount whichever the
+# loader actually wrote.
+OPENCL_SO=$(ls $(pwd)/OpenCL-ICD-Loader-build/libOpenCL.so.1.* 2>/dev/null | head -1)
+if [[ -z "${OPENCL_SO}" ]]; then
+  echo "ERROR: could not find OpenCL-ICD-Loader-build/libOpenCL.so.1.* — did the loader build?" >&2
+  exit 1
+fi
+echo "Using OpenCL loader: ${OPENCL_SO}"
+
 DOCKER_ARGS="-v $(pwd)/dist:/work/dist/ -v $script_dir/../ITKPythonPackage:/ITKPythonPackage -v $(pwd)/tools:/tools"
 DOCKER_ARGS+=" -v $(pwd)/OpenCL-ICD-Loader/inc/CL:/usr/include/CL"
-DOCKER_ARGS+=" -v $(pwd)/OpenCL-ICD-Loader-build/libOpenCL.so.1.2:/usr/lib64/libOpenCL.so.1"
-DOCKER_ARGS+=" -v $(pwd)/OpenCL-ICD-Loader-build/libOpenCL.so.1.2:/usr/lib64/libOpenCL.so"
+DOCKER_ARGS+=" -v ${OPENCL_SO}:/usr/lib64/libOpenCL.so.1"
+DOCKER_ARGS+=" -v ${OPENCL_SO}:/usr/lib64/libOpenCL.so"
 DOCKER_ARGS+=" -e MANYLINUX_VERSION"
 
 /tmp/dockcross-manylinux-x64 \
