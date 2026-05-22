@@ -53,7 +53,10 @@ elseif(VKFFT_BACKEND EQUAL 4)
   if(NOT LevelZero_INCLUDE_DIR OR NOT LevelZero_LIBRARY)
     message(FATAL_ERROR "VKFFT_BACKEND=4 (Level Zero) requires the oneAPI Level Zero loader (ze_loader) and headers (level_zero/ze_api.h). Install the 'level-zero' package or set LEVEL_ZERO_ROOT.")
   endif()
-  list(APPEND VkFFTBackend_SYSTEM_INCLUDE_DIRS ${LevelZero_INCLUDE_DIR})
+  # VkFFT includes <ze_api.h> bare; this module uses <level_zero/ze_api.h> — both dirs needed.
+  list(APPEND VkFFTBackend_SYSTEM_INCLUDE_DIRS
+    ${LevelZero_INCLUDE_DIR}
+    ${LevelZero_INCLUDE_DIR}/level_zero)
   list(APPEND VkFFTBackend_SYSTEM_LIBRARIES ${LevelZero_LIBRARY})
 
   set(VkFFTBackend_EXPORT_CODE_INSTALL "
