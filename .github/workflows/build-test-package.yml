@@ -34,18 +34,25 @@ jobs:
       matrix:
         os: [ubuntu-24.04, windows-2022, macos-15]
         include:
+          # ctest-filter: ubuntu's conda pocl is verified to compute the
+          # capped FFT subset correctly, so it runs lint + PoclSafe. windows
+          # installs no OpenCL ICD and macOS pocl is unverified, so they run
+          # the lint smoke tests only.
           - os: ubuntu-24.04
             c-compiler: "gcc"
             cxx-compiler: "g++"
             cmake-build-type: "MinSizeRel"
+            ctest-filter: "VkFFTBackend|PoclSafe"
           - os: windows-2022
             c-compiler: "cl.exe"
             cxx-compiler: "cl.exe"
             cmake-build-type: "Release"
+            ctest-filter: "VkFFTBackend"
           - os: macos-15
             c-compiler: "clang"
             cxx-compiler: "clang++"
             cmake-build-type: "MinSizeRel"
+            ctest-filter: "VkFFTBackend"
 
     steps:
     - uses: actions/checkout@v5
@@ -256,27 +263,23 @@ jobs:
         done
         echo "Using OCL_ICD_VENDORS=${OCL_ICD_VENDORS:-/etc/OpenCL/vendors}"
         ls -la "${OCL_ICD_VENDORS:-/etc/OpenCL/vendors}" 2>/dev/null || true
-        # Hosted runners ship only pocl (CPU OpenCL), which is known to
-        # diverge from real-GPU OpenCL on VkFFT-generated kernels — both
-        # baseline-image comparisons and ForwardInverse round-trips fail
-        # with large ImageError magnitudes when run under pocl. Restrict
-        # CI to non-FFT smoke tests (KWStyle, header doxygen group);
-        # functional FFT correctness is exercised on the self-hosted GPU
-        # runner via test-gpu.yml.
-        ctest --output-on-failure -j 2 -V -S dashboard.cmake -R "VkFFTBackend"
+        # Hosted runners ship only pocl (CPU OpenCL), which diverges from
+        # real-GPU OpenCL on VkFFT's larger Bluestein kernels (size-19 inverse)
+        # and on the stored-baseline image comparisons. Run the lint smoke
+        # tests plus the pocl-safe FFT round-trip subset (capped at size 16);
+        # full-size and baseline FFT correctness run on the GPU runner.
+        ctest --output-on-failure -j 2 -V -S dashboard.cmake -R "${{ matrix.ctest-filter }}"
 
     - name: Build and test
       if: matrix.os == 'windows-2022'
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        # Hosted runners ship only pocl (CPU OpenCL), which is known to
-        # diverge from real-GPU OpenCL on VkFFT-generated kernels — both
-        # baseline-image comparisons and ForwardInverse round-trips fail
-        # with large ImageError magnitudes when run under pocl. Restrict
-        # CI to non-FFT smoke tests (KWStyle, header doxygen group);
-        # functional FFT correctness is exercised on the self-hosted GPU
-        # runner via test-gpu.yml.
-        ctest --output-on-failure -j 2 -V -S dashboard.cmake -R "VkFFTBackend"
+        # Hosted runners ship only pocl (CPU OpenCL), which diverges from
+        # real-GPU OpenCL on VkFFT's larger Bluestein kernels (size-19 inverse)
+        # and on the stored-baseline image comparisons. Run the lint smoke
+        # tests plus the pocl-safe FFT round-trip subset (capped at size 16);
+        # full-size and baseline FFT correctness run on the GPU runner.
+        ctest --output-on-failure -j 2 -V -S dashboard.cmake -R "${{ matrix.ctest-filter }}"
       shell: cmd
 
   build-backend:

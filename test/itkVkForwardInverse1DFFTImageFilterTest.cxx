@@ -57,7 +57,7 @@ public:
 
 template <typename PrecisionType>
 int
-runVkForwardInverse1DFFTImageFilterTest()
+runVkForwardInverse1DFFTImageFilterTest(unsigned int maxSize = 20)
 {
   int  testNumber{ 0 };
   bool testsPassed{ true };
@@ -72,7 +72,7 @@ runVkForwardInverse1DFFTImageFilterTest()
     bool                              firstPass{ true };
 
     // Skip trivial case where 1D image of size 1 fails.
-    for (unsigned int mySize{ 2 }; mySize <= 20; ++mySize)
+    for (unsigned int mySize{ 2 }; mySize <= maxSize; ++mySize)
     {
       // We expect that anything evenly divisible by a prime number greater than 13
       // will succeed with Bluestein's Algorithm implementation in VkFFT, though
@@ -184,14 +184,15 @@ runVkForwardInverse1DFFTImageFilterTest()
 int
 itkVkForwardInverse1DFFTImageFilterTest(int argc, char * argv[])
 {
-  const std::string precision{ (argc > 1) ? argv[1] : "float" };
+  const std::string  precision{ (argc > 1) ? argv[1] : "float" };
+  const unsigned int maxSize{ (argc > 2) ? static_cast<unsigned int>(std::stoul(argv[2])) : 20 };
   if (precision == "double")
   {
-    return runVkForwardInverse1DFFTImageFilterTest<double>();
+    return runVkForwardInverse1DFFTImageFilterTest<double>(maxSize);
   }
   if (precision == "float")
   {
-    return runVkForwardInverse1DFFTImageFilterTest<float>();
+    return runVkForwardInverse1DFFTImageFilterTest<float>(maxSize);
   }
   std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
   return EXIT_FAILURE;

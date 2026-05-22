@@ -57,7 +57,7 @@ public:
 
 template <typename PrecisionType>
 int
-runVkHalfHermitianFFTImageFilterTest()
+runVkHalfHermitianFFTImageFilterTest(unsigned int maxSize = 20)
 {
   int  testNumber{ 0 };
   bool testsPassed{ true };
@@ -71,7 +71,7 @@ runVkHalfHermitianFFTImageFilterTest()
     typename RealImageType::IndexType index;
     bool                              firstPass{ true };
     // Skip trivial case where 1D image of size 1 fails.
-    for (unsigned int mySize{ 2 }; mySize <= 20; ++mySize, firstPass = false)
+    for (unsigned int mySize{ 2 }; mySize <= maxSize; ++mySize, firstPass = false)
     {
       // We expect that anything evenly divisible by a prime number greater than 13
       // will succeed with Bluestein's Algorithm implementation in VkFFT, though
@@ -189,14 +189,15 @@ runVkHalfHermitianFFTImageFilterTest()
 int
 itkVkHalfHermitianFFTImageFilterTest(int argc, char * argv[])
 {
-  const std::string precision{ (argc > 1) ? argv[1] : "float" };
+  const std::string  precision{ (argc > 1) ? argv[1] : "float" };
+  const unsigned int maxSize{ (argc > 2) ? static_cast<unsigned int>(std::stoul(argv[2])) : 20 };
   if (precision == "double")
   {
-    return runVkHalfHermitianFFTImageFilterTest<double>();
+    return runVkHalfHermitianFFTImageFilterTest<double>(maxSize);
   }
   if (precision == "float")
   {
-    return runVkHalfHermitianFFTImageFilterTest<float>();
+    return runVkHalfHermitianFFTImageFilterTest<float>(maxSize);
   }
   std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
   return EXIT_FAILURE;
