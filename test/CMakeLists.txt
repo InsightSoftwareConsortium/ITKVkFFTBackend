@@ -170,6 +170,17 @@ itk_add_test(NAME itkVkForwardInverseFFTImageFilterTestDouble
   )
 _vkfft_disable_on_unsupported_fp64(itkVkForwardInverseFFTImageFilterTestDouble)
 
+# pocl (CPU OpenCL) computes VkFFT's size-19 Bluestein inverse incorrectly, so
+# the hosted pocl-backed leg runs the round-trip tests capped at size 16
+# (radix-2/3/5/7 plus Bluestein primes 11/13). Real GPUs run the full sweep above.
+itk_add_test(NAME itkVkForwardInverseFFTImageFilterTestFloatPoclSafe
+  COMMAND VkFFTBackendTestDriver itkVkForwardInverseFFTImageFilterTest float 16
+  )
+itk_add_test(NAME itkVkForwardInverseFFTImageFilterTestDoublePoclSafe
+  COMMAND VkFFTBackendTestDriver itkVkForwardInverseFFTImageFilterTest double 16
+  )
+_vkfft_disable_on_unsupported_fp64(itkVkForwardInverseFFTImageFilterTestDoublePoclSafe)
+
 # -----------------------------------------------------------------------------
 # ForwardInverse1DFFTImageFilterTest
 # -----------------------------------------------------------------------------
@@ -181,6 +192,14 @@ itk_add_test(NAME itkVkForwardInverse1DFFTImageFilterTestDouble
   )
 _vkfft_disable_on_unsupported_fp64(itkVkForwardInverse1DFFTImageFilterTestDouble)
 
+itk_add_test(NAME itkVkForwardInverse1DFFTImageFilterTestFloatPoclSafe
+  COMMAND VkFFTBackendTestDriver itkVkForwardInverse1DFFTImageFilterTest float 16
+  )
+itk_add_test(NAME itkVkForwardInverse1DFFTImageFilterTestDoublePoclSafe
+  COMMAND VkFFTBackendTestDriver itkVkForwardInverse1DFFTImageFilterTest double 16
+  )
+_vkfft_disable_on_unsupported_fp64(itkVkForwardInverse1DFFTImageFilterTestDoublePoclSafe)
+
 # -----------------------------------------------------------------------------
 # HalfHermitianFFTImageFilterTest
 # -----------------------------------------------------------------------------
@@ -191,6 +210,14 @@ itk_add_test(NAME itkVkHalfHermitianFFTImageFilterTestDouble
   COMMAND VkFFTBackendTestDriver itkVkHalfHermitianFFTImageFilterTest double
   )
 _vkfft_disable_on_unsupported_fp64(itkVkHalfHermitianFFTImageFilterTestDouble)
+
+itk_add_test(NAME itkVkHalfHermitianFFTImageFilterTestFloatPoclSafe
+  COMMAND VkFFTBackendTestDriver itkVkHalfHermitianFFTImageFilterTest float 16
+  )
+itk_add_test(NAME itkVkHalfHermitianFFTImageFilterTestDoublePoclSafe
+  COMMAND VkFFTBackendTestDriver itkVkHalfHermitianFFTImageFilterTest double 16
+  )
+_vkfft_disable_on_unsupported_fp64(itkVkHalfHermitianFFTImageFilterTestDoublePoclSafe)
 
 # -----------------------------------------------------------------------------
 # FFTImageFilterFactoryTest (instantiation only — runs on all platforms)
@@ -356,7 +383,7 @@ if(VKFFT_BACKEND EQUAL 4 AND NOT VkFFTBackend_LEVEL_ZERO_RUNTIME_AVAILABLE)
     itkVkDiscreteGaussianImageFilterTest
     itkVkDiscreteGaussianImageFilterTest2
   )
-    foreach(_suffix Float Double)
+    foreach(_suffix Float Double FloatPoclSafe DoublePoclSafe)
       if(TEST ${_stem}${_suffix})
         set_tests_properties(${_stem}${_suffix} PROPERTIES DISABLED TRUE)
       endif()
