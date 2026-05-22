@@ -22,7 +22,8 @@ if(VKFFT_BACKEND EQUAL 1)
   find_package(CUDAToolkit REQUIRED)
   list(APPEND VkFFTBackend_SYSTEM_INCLUDE_DIRS ${CUDAToolkit_INCLUDE_DIRS})
 elseif(VKFFT_BACKEND EQUAL 3)
-  add_compile_definitions(CL_TARGET_OPENCL_VERSION=120)
+  set(CL_TARGET_OPENCL_VERSION 300 CACHE STRING "OpenCL API version to target (e.g. 120, 300)")
+  add_compile_definitions(CL_TARGET_OPENCL_VERSION=${CL_TARGET_OPENCL_VERSION})
 
   ## When this module is loaded by an app, load OpenCL too.
   set(VkFFTBackend_EXPORT_CODE_INSTALL "

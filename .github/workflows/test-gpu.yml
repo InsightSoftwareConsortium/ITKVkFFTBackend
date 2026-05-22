@@ -17,7 +17,7 @@ jobs:
         include:
           - opencl-icd-loader-git-tag: "v2021.04.29"
             opencl-headers-git-tag: "v2021.04.29"
-            opencl-version: "120"
+            opencl-version: "300"
             vkfft-backend: 3
             cmake-build-type: "MinSizeRel"
             platform-name: "ubuntu-nvidia-gpu"
