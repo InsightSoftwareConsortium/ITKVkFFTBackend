@@ -26,4 +26,12 @@
 #define LEVEL_ZERO 4
 #define METAL 5
 
+// Defensive default: when VKFFT_BACKEND is not set on the command line
+// (e.g. castxml wrapping invocations that bypass our top-level
+// add_compile_definitions), fall back to OpenCL so vkFFT.h does not
+// take the Vulkan branch and try to #include <vulkan/vulkan.h>.
+#ifndef VKFFT_BACKEND
+#  define VKFFT_BACKEND OPENCL
+#endif
+
 #endif // itkVkDefinitions_h

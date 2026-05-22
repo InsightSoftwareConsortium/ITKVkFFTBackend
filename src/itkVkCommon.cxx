@@ -114,8 +114,22 @@ VkCommon::ConfigureBackend()
   uint64_t k{ 0 };
   for (uint64_t j{ 0 }; j < numPlatforms; j++)
   {
-    cl_uint numDevices;
+    // First probe: how many devices does this platform expose? An OpenCL
+    // platform with zero compute devices is legitimate (e.g. Apple's
+    // deprecated OpenCL framework on macOS 15 returns CL_DEVICE_NOT_FOUND
+    // for CL_DEVICE_TYPE_ALL). Skip such platforms; calling clGetDeviceIDs
+    // again with num_entries=0 would return CL_INVALID_VALUE.
+    cl_uint numDevices{ 0 };
     resCL = clGetDeviceIDs(platforms[j], CL_DEVICE_TYPE_ALL, 0, nullptr, &numDevices);
+    if (resCL == CL_DEVICE_NOT_FOUND || numDevices == 0)
+    {
+      continue;
+    }
+    if (resCL != CL_SUCCESS)
+    {
+      std::cerr << __FILE__ "(" << __LINE__ << "): clGetDeviceIDs(count) returned " << resCL << std::endl;
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
+    }
     std::unique_ptr<cl_device_id[]> deviceListArray{ std::make_unique<cl_device_id[]>(numDevices) };
     cl_device_id *                  deviceList{ &deviceListArray[0] };
     if (!deviceList)
