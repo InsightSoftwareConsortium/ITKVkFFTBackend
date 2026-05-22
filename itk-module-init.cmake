@@ -8,8 +8,14 @@ if(${VKFFT_BACKEND} EQUAL 1)
 elseif(${VKFFT_BACKEND} EQUAL 3)
   find_package(OpenCL REQUIRED)
 elseif(${VKFFT_BACKEND} EQUAL 4)
-  find_path(LevelZero_INCLUDE_DIR NAMES level_zero/ze_api.h)
-  find_library(LevelZero_LIBRARY NAMES ze_loader)
+  find_path(LevelZero_INCLUDE_DIR
+    NAMES level_zero/ze_api.h
+    HINTS ENV LEVEL_ZERO_ROOT ENV CMPLR_ROOT
+    PATH_SUFFIXES include)
+  find_library(LevelZero_LIBRARY
+    NAMES ze_loader
+    HINTS ENV LEVEL_ZERO_ROOT ENV CMPLR_ROOT
+    PATH_SUFFIXES lib lib64 lib/x64)
   if(NOT LevelZero_INCLUDE_DIR OR NOT LevelZero_LIBRARY)
     message(FATAL_ERROR "VKFFT_BACKEND=4 (Level Zero) requires the oneAPI Level Zero loader (ze_loader) and headers (level_zero/ze_api.h).")
   endif()
