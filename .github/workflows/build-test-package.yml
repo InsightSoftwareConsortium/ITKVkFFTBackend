@@ -9,7 +9,7 @@ env:
   opencl-icd-loader-git-tag: "v2025.07.22"
   opencl-headers-git-tag: "v2025.07.22"
   vkfft-backend: 3
-  opencl-version: "120"
+  opencl-version: "300"
   # Only the modules VkFFTBackend DEPENDS/COMPILE_DEPENDS/TEST_DEPENDS on;
   # transitive dependencies are auto-enabled by ITK.
   itk-minimal-modules: >-
