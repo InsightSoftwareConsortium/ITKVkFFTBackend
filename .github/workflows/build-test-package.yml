@@ -279,6 +279,112 @@ jobs:
         ctest --output-on-failure -j 2 -V -S dashboard.cmake -R "VkFFTBackend"
       shell: cmd
 
+  build-backend:
+    name: build-backend (${{ matrix.backend-name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            backend: 1
+            backend-name: CUDA
+            c-compiler: "gcc"
+            cxx-compiler: "g++"
+          - os: ubuntu-24.04
+            backend: 4
+            backend-name: LevelZero
+            c-compiler: "gcc"
+            cxx-compiler: "g++"
+          - os: macos-15
+            backend: 5
+            backend-name: Metal
+            c-compiler: "clang"
+            cxx-compiler: "clang++"
+            run-tests: true
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.9"
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install ninja
+      shell: bash
+
+    - name: Get specific version of CMake, Ninja
+      uses: lukka/get-cmake@latest
+
+    - name: Install CUDA toolkit
+      if: matrix.backend == 1
+      uses: Jimver/cuda-toolkit@v0.2.21
+      with:
+        method: network
+        sub-packages: '["nvcc", "cudart", "cudart-dev", "nvrtc", "nvrtc-dev"]'
+        non-cuda-sub-packages: '["libcufft", "libcufft-dev"]'
+
+    - name: Build Level Zero loader and headers
+      if: matrix.backend == 4
+      run: |
+        git clone --depth 1 https://github.com/oneapi-src/level-zero.git ../level-zero
+        cmake -S ../level-zero -B ../level-zero-build -GNinja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=/usr
+        sudo cmake --build ../level-zero-build --target install
+        echo "LEVEL_ZERO_ROOT=/usr" >> "$GITHUB_ENV"
+      shell: bash
+
+    - name: Download ITK
+      run: |
+        git clone https://github.com/InsightSoftwareConsortium/ITK.git ../ITK
+        git -C ../ITK checkout ${{ env.itk-git-tag }}
+      shell: bash
+
+    - name: Build minimal ITK (module dependencies only, no tests)
+      run: |
+        cmake -S ../ITK -B ../ITK-build -GNinja \
+          -DCMAKE_C_COMPILER="${{ matrix.c-compiler }}" \
+          -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" \
+          -DCMAKE_BUILD_TYPE=MinSizeRel \
+          -DBUILD_SHARED_LIBS=ON \
+          -DBUILD_TESTING=OFF \
+          ${{ env.itk-minimal-modules }}
+        cmake --build ../ITK-build
+      shell: bash
+
+    - name: Configure VkFFTBackend (VKFFT_BACKEND=${{ matrix.backend }})
+      run: |
+        extra_args=()
+        if [ "${{ matrix.backend }}" = "1" ]; then
+          # No GPU on the runner: link against the CUDA driver stub.
+          extra_args+=("-DCMAKE_SHARED_LINKER_FLAGS=-L${CUDA_PATH}/lib64/stubs")
+          extra_args+=("-DCUDA_USE_STATIC_CUDA_RUNTIME=OFF")
+        fi
+        cmake -S . -B ../module-build -GNinja \
+          -DCMAKE_C_COMPILER="${{ matrix.c-compiler }}" \
+          -DCMAKE_CXX_COMPILER="${{ matrix.cxx-compiler }}" \
+          -DCMAKE_BUILD_TYPE=MinSizeRel \
+          -DBUILD_SHARED_LIBS=ON \
+          -DBUILD_TESTING=${{ matrix.run-tests && 'ON' || 'OFF' }} \
+          -DITK_DIR="$(cd ../ITK-build && pwd)" \
+          -DVKFFT_BACKEND=${{ matrix.backend }} \
+          "${extra_args[@]}"
+      shell: bash
+
+    - name: Compile VkFFTBackend
+      run: cmake --build ../module-build
+      shell: bash
+
+    - name: Run tests
+      if: matrix.run-tests
+      run: ctest --test-dir ../module-build --output-on-failure -j 2
+      shell: bash
+
   build-windows-opencl-python-packages:
     # DISABLED — building Python wheels for ITK 6.0b02 on Windows requires
     # ITKPythonBuilds-windows.zip to ship a castxml wrapping config that
