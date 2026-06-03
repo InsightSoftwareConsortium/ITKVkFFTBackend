@@ -24,6 +24,8 @@
 #include "itkImageFileWriter.h"
 #include "itkTestingMacros.h"
 
+#include <string>
+
 namespace
 {
 class ShowProgress : public itk::Command
@@ -54,23 +56,14 @@ public:
 };
 } // namespace
 
+template <typename PrecisionType>
 int
-itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
+runVkComplexToComplexFFTImageFilterTest(const char * outputImageFileName)
 {
   int testNumber{ 0 };
   {
-    if (argc != 2)
-    {
-      std::cerr << "Missing parameters." << std::endl;
-      std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
-      std::cerr << " outputImage";
-      std::cerr << std::endl;
-      return EXIT_FAILURE;
-    }
-    const char * outputImageFileName{ argv[1] };
-
     constexpr unsigned int Dimension{ 2 };
-    using ComplexType = std::complex<double>;
+    using ComplexType = std::complex<PrecisionType>;
     using ComplexImageType = itk::Image<ComplexType, Dimension>;
 
     using FilterType = itk::VkComplexToComplexFFTImageFilter<ComplexImageType>;
@@ -109,7 +102,7 @@ itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
   bool testsPassed{ true };
   {
     constexpr unsigned int Dimension{ 1 };
-    using RealType = float;
+    using RealType = PrecisionType;
     using ComplexType = std::complex<RealType>;
     using ComplexImageType = itk::Image<ComplexType, Dimension>;
     typename ComplexImageType::SizeType size;
@@ -199,5 +192,30 @@ itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
     return EXIT_SUCCESS;
   }
 
+  return EXIT_FAILURE;
+}
+
+int
+itkVkComplexToComplexFFTImageFilterTest(int argc, char * argv[])
+{
+  if (argc < 3)
+  {
+    std::cerr << "Missing parameters." << std::endl;
+    std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
+    std::cerr << " <float|double> outputImage";
+    std::cerr << std::endl;
+    return EXIT_FAILURE;
+  }
+  const std::string precision{ argv[1] };
+  const char *      outputImageFileName{ argv[2] };
+  if (precision == "double")
+  {
+    return runVkComplexToComplexFFTImageFilterTest<double>(outputImageFileName);
+  }
+  if (precision == "float")
+  {
+    return runVkComplexToComplexFFTImageFilterTest<float>(outputImageFileName);
+  }
+  std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
   return EXIT_FAILURE;
 }

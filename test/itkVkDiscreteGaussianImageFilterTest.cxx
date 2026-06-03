@@ -16,6 +16,7 @@
  *
  *=========================================================================*/
 #include <iostream>
+#include <string>
 
 #include "itkConstantBoundaryCondition.h"
 #include "itkVkDiscreteGaussianImageFilter.h"
@@ -25,21 +26,12 @@
 #include "itkZeroFluxNeumannBoundaryCondition.h"
 #include "itkImage.h"
 
+template <typename PrecisionType>
 int
-itkVkDiscreteGaussianImageFilterTest(int argc, char * argv[])
+runVkDiscreteGaussianImageFilterTest(int argc, char * argv[])
 {
-  if (argc < 3)
-  {
-    std::cerr << "Missing parameters." << std::endl;
-    std::cerr << "Usage:" << std::endl;
-    std::cerr << itkNameOfTestExecutableMacro(argv)
-              << " inputFilename outputFilename [expectFFT] [metricThreshold] [sigma] [kernelError] [kernelWidth] "
-              << std::endl;
-    return EXIT_FAILURE;
-  }
-
   constexpr unsigned int ImageDimension = 2;
-  using ImageType = typename itk::Image<float, ImageDimension>;
+  using ImageType = typename itk::Image<PrecisionType, ImageDimension>;
 
   bool         expectFFT = (argc > 3) ? (std::atoi(argv[3]) == 1) : false;
   float        fftThreshold = (argc > 4) ? std::stof(argv[4]) : 8.0f;
@@ -101,4 +93,32 @@ itkVkDiscreteGaussianImageFilterTest(int argc, char * argv[])
   itk::WriteImage(filter->GetOutput(), argv[2], true);
 
   return EXIT_SUCCESS;
+}
+
+int
+itkVkDiscreteGaussianImageFilterTest(int argc, char * argv[])
+{
+  if (argc < 4)
+  {
+    std::cerr << "Missing parameters." << std::endl;
+    std::cerr << "Usage:" << std::endl;
+    std::cerr << itkNameOfTestExecutableMacro(argv)
+              << " <float|double> inputFilename outputFilename [expectFFT] [metricThreshold] [sigma] [kernelError] "
+                 "[kernelWidth] "
+              << std::endl;
+    return EXIT_FAILURE;
+  }
+  const std::string precision{ argv[1] };
+  char **           shiftedArgv = argv + 1;
+  int               shiftedArgc = argc - 1;
+  if (precision == "double")
+  {
+    return runVkDiscreteGaussianImageFilterTest<double>(shiftedArgc, shiftedArgv);
+  }
+  if (precision == "float")
+  {
+    return runVkDiscreteGaussianImageFilterTest<float>(shiftedArgc, shiftedArgv);
+  }
+  std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
+  return EXIT_FAILURE;
 }

@@ -18,6 +18,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <string>
 
 #include "itkVkMultiResolutionPyramidImageFilter.h"
 #include "itkImageFileReader.h"
@@ -42,22 +43,12 @@ public:
 };
 } // namespace
 
+template <typename PrecisionType>
 int
-itkVkMultiResolutionPyramidImageFilterTest(int argc, char * argv[])
+runVkMultiResolutionPyramidImageFilterTest(int argc, char * argv[])
 {
-  if (argc < 3)
-  {
-    std::cerr << "Missing Parameters." << std::endl;
-    std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
-    std::cerr << " inputImage outputImage <threshold0> [threshold1] [kernelThresholdDimension] [useShrinkFilter] "
-                 "[numLevels] [expectedFFTLevelCount]"
-              << std::endl;
-    std::cerr << std::flush;
-    return EXIT_FAILURE;
-  }
-
   constexpr unsigned int ImageDimension = 2;
-  using InputPixelType = float;
+  using InputPixelType = PrecisionType;
   using ImageType = itk::Image<InputPixelType, ImageDimension>;
 
   auto inputImage = itk::ReadImage<ImageType>(argv[1]);
@@ -170,4 +161,33 @@ itkVkMultiResolutionPyramidImageFilterTest(int argc, char * argv[])
   }
 
   return EXIT_SUCCESS;
+}
+
+int
+itkVkMultiResolutionPyramidImageFilterTest(int argc, char * argv[])
+{
+  if (argc < 4)
+  {
+    std::cerr << "Missing Parameters." << std::endl;
+    std::cerr << "Usage: " << itkNameOfTestExecutableMacro(argv);
+    std::cerr << " <float|double> inputImage outputImage <threshold0> [threshold1] [kernelThresholdDimension] "
+                 "[useShrinkFilter] [numLevels] [expectedFFTLevelCount]"
+              << std::endl;
+    std::cerr << std::flush;
+    return EXIT_FAILURE;
+  }
+  const std::string precision{ argv[1] };
+  // Shift argv left so the inner test body sees argv[1..] as before.
+  char ** shiftedArgv = argv + 1;
+  int     shiftedArgc = argc - 1;
+  if (precision == "double")
+  {
+    return runVkMultiResolutionPyramidImageFilterTest<double>(shiftedArgc, shiftedArgv);
+  }
+  if (precision == "float")
+  {
+    return runVkMultiResolutionPyramidImageFilterTest<float>(shiftedArgc, shiftedArgv);
+  }
+  std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
+  return EXIT_FAILURE;
 }

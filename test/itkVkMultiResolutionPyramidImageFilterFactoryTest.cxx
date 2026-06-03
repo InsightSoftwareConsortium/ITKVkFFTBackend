@@ -28,12 +28,12 @@
 // Verify MultiResolutionPyramidImageFilter can be overriden
 // with spatial+FFT implementation through object factory override
 
+template <typename PrecisionType>
 int
-itkVkMultiResolutionPyramidImageFilterFactoryTest(int, char *[])
+runVkMultiResolutionPyramidImageFilterFactoryTest()
 {
-  using PixelType = double;
   constexpr unsigned int Dimension{ 2 };
-  using ImageType = itk::Image<PixelType, Dimension>;
+  using ImageType = itk::Image<PrecisionType, Dimension>;
   using BaseFilterType = itk::MultiResolutionPyramidImageFilter<ImageType, ImageType>;
   using VkSubclassType = itk::VkMultiResolutionPyramidImageFilter<ImageType, ImageType>;
 
@@ -53,4 +53,20 @@ itkVkMultiResolutionPyramidImageFilterFactoryTest(int, char *[])
     derivedFilter, VkMultiResolutionPyramidImageFilter, MultiResolutionPyramidImageFilter);
 
   return EXIT_SUCCESS;
+}
+
+int
+itkVkMultiResolutionPyramidImageFilterFactoryTest(int argc, char * argv[])
+{
+  const std::string precision{ (argc > 1) ? argv[1] : "float" };
+  if (precision == "double")
+  {
+    return runVkMultiResolutionPyramidImageFilterFactoryTest<double>();
+  }
+  if (precision == "float")
+  {
+    return runVkMultiResolutionPyramidImageFilterFactoryTest<float>();
+  }
+  std::cerr << "Unknown precision '" << precision << "'. Expected 'float' or 'double'." << std::endl;
+  return EXIT_FAILURE;
 }

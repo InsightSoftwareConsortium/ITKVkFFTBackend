@@ -15,11 +15,20 @@
  *  limitations under the License.
  *
  *=========================================================================*/
-#include "itkVkCommon.h"
 #include "itkVkDefinitions.h"
+#if (VKFFT_BACKEND == METAL)
+#  define NS_PRIVATE_IMPLEMENTATION
+#  define MTL_PRIVATE_IMPLEMENTATION
+#  define CA_PRIVATE_IMPLEMENTATION
+#  include "Foundation/Foundation.hpp"
+#  include "Metal/Metal.hpp"
+#  include "QuartzCore/QuartzCore.hpp"
+#endif
+#include "itkVkCommon.h"
 #include "vkFFT.h"
 #include "itkMacro.h"
 #include <complex>
+#include <cstring>
 #include <iostream>
 #include <memory>
 
@@ -73,7 +82,11 @@ VkCommon::ConfigureBackend()
   res = cuDeviceGet(&m_VkGPU.device, (int)m_VkGPU.device_id);
   if (res != CUDA_SUCCESS)
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
+#if CUDA_VERSION >= 13000
+  res = cuCtxCreate(&m_VkGPU.context, nullptr, 0, (int)m_VkGPU.device);
+#else
   res = cuCtxCreate(&m_VkGPU.context, 0, (int)m_VkGPU.device);
+#endif
   if (res != CUDA_SUCCESS)
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_CONTEXT };
 
@@ -119,7 +132,10 @@ VkCommon::ConfigureBackend()
       {
         m_VkGPU.platform = platforms[j];
         m_VkGPU.device = deviceList[i];
-        m_VkGPU.context = clCreateContext(NULL, 1, &m_VkGPU.device, NULL, NULL, &resCL);
+        const cl_context_properties contextProperties[]{
+          CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(m_VkGPU.platform), 0
+        };
+        m_VkGPU.context = clCreateContext(contextProperties, 1, &m_VkGPU.device, NULL, NULL, &resCL);
         if (resCL != CL_SUCCESS)
         {
           std::cerr << __FILE__ "(" << __LINE__ << "): clCreateContext returned " << resCL << std::endl;
@@ -138,6 +154,119 @@ VkCommon::ConfigureBackend()
         k++;
       }
     }
+  }
+#elif (VKFFT_BACKEND == LEVEL_ZERO)
+  ze_result_t resZE{ ZE_RESULT_SUCCESS };
+  resZE = zeInit(0);
+  if (resZE != ZE_RESULT_SUCCESS)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): zeInit returned " << resZE << std::endl;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_INITIALIZE };
+  }
+  uint32_t numDrivers{ 0 };
+  resZE = zeDriverGet(&numDrivers, nullptr);
+  if (resZE != ZE_RESULT_SUCCESS || numDrivers == 0)
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_INITIALIZE };
+  std::unique_ptr<ze_driver_handle_t[]> drivers{ std::make_unique<ze_driver_handle_t[]>(numDrivers) };
+  resZE = zeDriverGet(&numDrivers, drivers.get());
+  if (resZE != ZE_RESULT_SUCCESS)
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_INITIALIZE };
+  uint64_t k{ 0 };
+  bool     found{ false };
+  for (uint32_t j{ 0 }; j < numDrivers && !found; ++j)
+  {
+    uint32_t numDevices{ 0 };
+    resZE = zeDeviceGet(drivers[j], &numDevices, nullptr);
+    if (resZE != ZE_RESULT_SUCCESS)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
+    std::unique_ptr<ze_device_handle_t[]> deviceList{ std::make_unique<ze_device_handle_t[]>(numDevices) };
+    resZE = zeDeviceGet(drivers[j], &numDevices, deviceList.get());
+    if (resZE != ZE_RESULT_SUCCESS)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
+    for (uint32_t i{ 0 }; i < numDevices && !found; ++i)
+    {
+      if (k == m_VkGPU.device_id)
+      {
+        m_VkGPU.driver = drivers[j];
+        m_VkGPU.device = deviceList[i];
+
+        ze_context_desc_t contextDescription{};
+        contextDescription.stype = ZE_STRUCTURE_TYPE_CONTEXT_DESC;
+        resZE = zeContextCreate(m_VkGPU.driver, &contextDescription, &m_VkGPU.context);
+        if (resZE != ZE_RESULT_SUCCESS)
+          return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_CONTEXT };
+
+        uint32_t queueGroupCount{ 0 };
+        resZE = zeDeviceGetCommandQueueGroupProperties(m_VkGPU.device, &queueGroupCount, nullptr);
+        if (resZE != ZE_RESULT_SUCCESS || queueGroupCount == 0)
+          return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_QUEUE };
+        std::unique_ptr<ze_command_queue_group_properties_t[]> queueGroupProps{
+          std::make_unique<ze_command_queue_group_properties_t[]>(queueGroupCount)
+        };
+        resZE = zeDeviceGetCommandQueueGroupProperties(m_VkGPU.device, &queueGroupCount, queueGroupProps.get());
+        if (resZE != ZE_RESULT_SUCCESS)
+          return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_QUEUE };
+        uint32_t commandQueueID{ static_cast<uint32_t>(-1) };
+        for (uint32_t g{ 0 }; g < queueGroupCount; ++g)
+        {
+          if ((queueGroupProps[g].flags & ZE_COMMAND_QUEUE_GROUP_PROPERTY_FLAG_COMPUTE) &&
+              (queueGroupProps[g].flags & ZE_COMMAND_QUEUE_GROUP_PROPERTY_FLAG_COPY))
+          {
+            commandQueueID = g;
+            break;
+          }
+        }
+        if (commandQueueID == static_cast<uint32_t>(-1))
+          return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_QUEUE };
+        m_VkGPU.commandQueueID = commandQueueID;
+
+        ze_command_queue_desc_t commandQueueDescription{};
+        commandQueueDescription.stype = ZE_STRUCTURE_TYPE_COMMAND_QUEUE_DESC;
+        commandQueueDescription.ordinal = commandQueueID;
+        commandQueueDescription.priority = ZE_COMMAND_QUEUE_PRIORITY_NORMAL;
+        commandQueueDescription.mode = ZE_COMMAND_QUEUE_MODE_DEFAULT;
+        resZE = zeCommandQueueCreate(m_VkGPU.context, m_VkGPU.device, &commandQueueDescription, &m_VkGPU.commandQueue);
+        if (resZE != ZE_RESULT_SUCCESS)
+          return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_QUEUE };
+        found = true;
+      }
+      else
+      {
+        ++k;
+      }
+    }
+  }
+  if (!found)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): Level Zero device_id " << m_VkGPU.device_id << " not found"
+              << std::endl;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
+  }
+#elif (VKFFT_BACKEND == METAL)
+  // Enumerate Metal devices and pick by device_id.
+  NS::Array * devices = MTL::CopyAllDevices();
+  if (devices == nullptr || devices->count() == 0)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): no Metal devices found" << std::endl;
+    if (devices != nullptr)
+      devices->release();
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_INITIALIZE };
+  }
+  if (m_VkGPU.device_id >= devices->count())
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): Metal device_id " << m_VkGPU.device_id << " out of range (have "
+              << devices->count() << ")" << std::endl;
+    devices->release();
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
+  }
+  m_VkGPU.device = devices->object<MTL::Device>(m_VkGPU.device_id);
+  m_VkGPU.device->retain();
+  devices->release();
+  m_VkGPU.queue = m_VkGPU.device->newCommandQueue();
+  if (m_VkGPU.queue == nullptr)
+  {
+    std::cerr << __FILE__ "(" << __LINE__ << "): newCommandQueue failed" << std::endl;
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_QUEUE };
   }
 #endif
 
@@ -174,12 +303,21 @@ VkCommon::ConfigureBackend()
   // - created device, [uint64_t *bufferSize, VkBuffer *buffer, VkDeviceMemory* bufferDeviceMemory] - allocated GPU
   // memory FFT is performed on. [uint64_t *kernelSize, VkBuffer *kernel, VkDeviceMemory* kernelDeviceMemory] -
   // allocated GPU memory, where kernel for convolution is stored.
-  m_VkFFTConfiguration.device = &m_VkGPU.device;
 #if (VKFFT_BACKEND == CUDA)
-  // pass
+  m_VkFFTConfiguration.device = &m_VkGPU.device;
 #elif (VKFFT_BACKEND == OPENCL)
+  m_VkFFTConfiguration.device = &m_VkGPU.device;
   m_VkFFTConfiguration.platform = &m_VkGPU.platform;
   m_VkFFTConfiguration.context = &m_VkGPU.context;
+#elif (VKFFT_BACKEND == LEVEL_ZERO)
+  m_VkFFTConfiguration.device = &m_VkGPU.device;
+  m_VkFFTConfiguration.context = &m_VkGPU.context;
+  m_VkFFTConfiguration.commandQueue = &m_VkGPU.commandQueue;
+  m_VkFFTConfiguration.commandQueueID = m_VkGPU.commandQueueID;
+#elif (VKFFT_BACKEND == METAL)
+  // Metal's VkFFTConfiguration takes single pointers, not pointer-to-pointer.
+  m_VkFFTConfiguration.device = m_VkGPU.device;
+  m_VkFFTConfiguration.queue = m_VkGPU.queue;
 #endif
 
   m_VkFFTConfiguration.makeInversePlanOnly = (m_VkParameters.I == DirectionEnum::INVERSE);
@@ -407,6 +545,112 @@ VkCommon::PerformFFT()
     std::cerr << __FILE__ "(" << __LINE__ << "): clEnqueueWriteBuffer returned " << resCL << std::endl;
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
   }
+#elif (VKFFT_BACKEND == LEVEL_ZERO)
+  ze_result_t resZE{ ZE_RESULT_SUCCESS };
+  void *      inputGPUBuffer{ nullptr };
+  void *      GPUBuffer{ nullptr };
+  void *      outputGPUBuffer{ nullptr };
+  ze_device_mem_alloc_desc_t deviceMemDesc{};
+  deviceMemDesc.stype = ZE_STRUCTURE_TYPE_DEVICE_MEM_ALLOC_DESC;
+
+  const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
+  resZE = zeMemAllocDevice(m_VkGPU.context, &deviceMemDesc, bufferBytes, m_VkParameters.PSize, m_VkGPU.device, &GPUBuffer);
+  if (resZE != ZE_RESULT_SUCCESS)
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+  m_VkFFTConfiguration.buffer = &GPUBuffer;
+
+  if (m_VkParameters.fft == FFTEnum::C2C)
+  {
+    inputGPUBuffer = GPUBuffer;
+    outputGPUBuffer = GPUBuffer;
+  }
+  else if (m_VkParameters.I == DirectionEnum::FORWARD)
+  {
+    const uint64_t inputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.inputBufferSize };
+    resZE = zeMemAllocDevice(
+      m_VkGPU.context, &deviceMemDesc, inputBufferBytes, m_VkParameters.PSize, m_VkGPU.device, &inputGPUBuffer);
+    if (resZE != ZE_RESULT_SUCCESS)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+    outputGPUBuffer = GPUBuffer;
+    m_VkFFTConfiguration.inputBuffer = &inputGPUBuffer;
+  }
+  else
+  {
+    const uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
+    resZE = zeMemAllocDevice(
+      m_VkGPU.context, &deviceMemDesc, outputBufferBytes, m_VkParameters.PSize, m_VkGPU.device, &outputGPUBuffer);
+    if (resZE != ZE_RESULT_SUCCESS)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+    inputGPUBuffer = GPUBuffer;
+    m_VkFFTConfiguration.outputBuffer = &outputGPUBuffer;
+  }
+
+  // Host -> device copy via an immediate command list on the compute/copy queue group.
+  {
+    ze_command_queue_desc_t copyQueueDesc{};
+    copyQueueDesc.stype = ZE_STRUCTURE_TYPE_COMMAND_QUEUE_DESC;
+    copyQueueDesc.ordinal = m_VkGPU.commandQueueID;
+    copyQueueDesc.mode = ZE_COMMAND_QUEUE_MODE_DEFAULT;
+    copyQueueDesc.priority = ZE_COMMAND_QUEUE_PRIORITY_NORMAL;
+    ze_command_list_handle_t copyCommandList{ nullptr };
+    resZE = zeCommandListCreateImmediate(m_VkGPU.context, m_VkGPU.device, &copyQueueDesc, &copyCommandList);
+    if (resZE != ZE_RESULT_SUCCESS)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_LIST };
+    resZE = zeCommandListAppendMemoryCopy(
+      copyCommandList, inputGPUBuffer, m_VkParameters.inputCPUBuffer, m_VkParameters.inputBufferBytes, nullptr, 0, nullptr);
+    if (resZE != ZE_RESULT_SUCCESS)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
+    resZE = zeCommandQueueSynchronize(m_VkGPU.commandQueue, UINT32_MAX);
+    if (resZE != ZE_RESULT_SUCCESS)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_SYNCHRONIZE };
+    zeCommandListDestroy(copyCommandList);
+  }
+#elif (VKFFT_BACKEND == METAL)
+  // Metal shared-storage buffers are CPU-visible on Apple unified-memory systems,
+  // so host<->device transfers reduce to memcpy into/out of MTL::Buffer::contents().
+  MTL::Buffer * inputGPUBuffer{ nullptr };
+  MTL::Buffer * GPUBuffer{ nullptr };
+  MTL::Buffer * outputGPUBuffer{ nullptr };
+  const auto    storageMode = MTL::ResourceStorageModeShared;
+  if (m_VkParameters.fft == FFTEnum::C2C)
+  {
+    const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
+    GPUBuffer = m_VkGPU.device->newBuffer(bufferBytes, storageMode);
+    if (GPUBuffer == nullptr)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+    inputGPUBuffer = GPUBuffer;
+    outputGPUBuffer = GPUBuffer;
+    m_VkFFTConfiguration.buffer = &GPUBuffer;
+  }
+  else
+  {
+    const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
+    GPUBuffer = m_VkGPU.device->newBuffer(bufferBytes, storageMode);
+    if (GPUBuffer == nullptr)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+    m_VkFFTConfiguration.buffer = &GPUBuffer;
+
+    if (m_VkParameters.I == DirectionEnum::FORWARD)
+    {
+      const uint64_t inputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.inputBufferSize };
+      inputGPUBuffer = m_VkGPU.device->newBuffer(inputBufferBytes, storageMode);
+      if (inputGPUBuffer == nullptr)
+        return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+      outputGPUBuffer = GPUBuffer;
+      m_VkFFTConfiguration.inputBuffer = &inputGPUBuffer;
+    }
+    else
+    {
+      const uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
+      inputGPUBuffer = GPUBuffer;
+      outputGPUBuffer = m_VkGPU.device->newBuffer(outputBufferBytes, storageMode);
+      if (outputGPUBuffer == nullptr)
+        return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+      m_VkFFTConfiguration.outputBuffer = &outputGPUBuffer;
+    }
+  }
+
+  std::memcpy(inputGPUBuffer->contents(), m_VkParameters.inputCPUBuffer, m_VkParameters.inputBufferBytes);
 #endif
 
   // Initialize applications. This function loads shaders, creates pipeline and configures FFT based on configuration
@@ -425,6 +669,20 @@ VkCommon::PerformFFT()
   // pass
 #elif (VKFFT_BACKEND == OPENCL)
   launchParams.commandQueue = &m_VkGPU.commandQueue;
+#elif (VKFFT_BACKEND == LEVEL_ZERO)
+  ze_command_list_desc_t   commandListDescription{};
+  commandListDescription.stype = ZE_STRUCTURE_TYPE_COMMAND_LIST_DESC;
+  commandListDescription.commandQueueGroupOrdinal = m_VkGPU.commandQueueID;
+  ze_command_list_handle_t launchCommandList{ nullptr };
+  resZE = zeCommandListCreate(m_VkGPU.context, m_VkGPU.device, &commandListDescription, &launchCommandList);
+  if (resZE != ZE_RESULT_SUCCESS)
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_LIST };
+  launchParams.commandList = &launchCommandList;
+#elif (VKFFT_BACKEND == METAL)
+  MTL::CommandBuffer *        metalCommandBuffer = m_VkGPU.queue->commandBuffer();
+  MTL::ComputeCommandEncoder * metalEncoder = metalCommandBuffer->computeCommandEncoder();
+  launchParams.commandBuffer = metalCommandBuffer;
+  launchParams.commandEncoder = metalEncoder;
 #endif
 
   resFFT = VkFFTAppend(&app, m_VkParameters.I == DirectionEnum::INVERSE ? 1 : -1, &launchParams);
@@ -484,6 +742,69 @@ VkCommon::PerformFFT()
   {
     // Release other buffer too
     clReleaseMemObject(outputGPUBuffer);
+  }
+#elif (VKFFT_BACKEND == LEVEL_ZERO)
+  resZE = zeCommandListClose(launchCommandList);
+  if (resZE != ZE_RESULT_SUCCESS)
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_SUBMIT_QUEUE };
+  resZE = zeCommandQueueExecuteCommandLists(m_VkGPU.commandQueue, 1, &launchCommandList, nullptr);
+  if (resZE != ZE_RESULT_SUCCESS)
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_SUBMIT_QUEUE };
+  resZE = zeCommandQueueSynchronize(m_VkGPU.commandQueue, UINT32_MAX);
+  if (resZE != ZE_RESULT_SUCCESS)
+    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_SYNCHRONIZE };
+  zeCommandListDestroy(launchCommandList);
+
+  // Device -> host copy via an immediate command list.
+  {
+    ze_command_queue_desc_t copyQueueDesc{};
+    copyQueueDesc.stype = ZE_STRUCTURE_TYPE_COMMAND_QUEUE_DESC;
+    copyQueueDesc.ordinal = m_VkGPU.commandQueueID;
+    copyQueueDesc.mode = ZE_COMMAND_QUEUE_MODE_DEFAULT;
+    copyQueueDesc.priority = ZE_COMMAND_QUEUE_PRIORITY_NORMAL;
+    ze_command_list_handle_t copyCommandList{ nullptr };
+    resZE = zeCommandListCreateImmediate(m_VkGPU.context, m_VkGPU.device, &copyQueueDesc, &copyCommandList);
+    if (resZE != ZE_RESULT_SUCCESS)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_LIST };
+    resZE = zeCommandListAppendMemoryCopy(copyCommandList,
+                                          m_VkParameters.outputCPUBuffer,
+                                          outputGPUBuffer,
+                                          m_VkParameters.outputBufferBytes,
+                                          nullptr,
+                                          0,
+                                          nullptr);
+    if (resZE != ZE_RESULT_SUCCESS)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
+    resZE = zeCommandQueueSynchronize(m_VkGPU.commandQueue, UINT32_MAX);
+    if (resZE != ZE_RESULT_SUCCESS)
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_SYNCHRONIZE };
+    zeCommandListDestroy(copyCommandList);
+  }
+
+  // GPUBuffer aliases input or output in the C2C / inverse-R2H cases; free it once.
+  zeMemFree(m_VkGPU.context, GPUBuffer);
+  if (m_VkParameters.fft != FFTEnum::C2C)
+  {
+    if (m_VkParameters.I == DirectionEnum::FORWARD)
+      zeMemFree(m_VkGPU.context, inputGPUBuffer);
+    else
+      zeMemFree(m_VkGPU.context, outputGPUBuffer);
+  }
+#elif (VKFFT_BACKEND == METAL)
+  metalEncoder->endEncoding();
+  metalCommandBuffer->commit();
+  metalCommandBuffer->waitUntilCompleted();
+
+  std::memcpy(m_VkParameters.outputCPUBuffer, outputGPUBuffer->contents(), m_VkParameters.outputBufferBytes);
+
+  // The C2C in-place case aliases input/output to GPUBuffer; release once.
+  GPUBuffer->release();
+  if (m_VkParameters.fft != FFTEnum::C2C)
+  {
+    if (m_VkParameters.I == DirectionEnum::FORWARD)
+      inputGPUBuffer->release();
+    else
+      outputGPUBuffer->release();
   }
 #endif
 
@@ -569,6 +890,28 @@ VkCommon::ReleaseBackend()
       std::cerr << __FILE__ "(" << __LINE__ << "): clReleaseContext returned " << resCL << std::endl;
       return VkFFTResult{ VKFFT_ERROR_FAILED_TO_RELEASE_COMMAND_QUEUE };
     }
+  }
+#elif (VKFFT_BACKEND == LEVEL_ZERO)
+  if (m_VkGPU.commandQueue)
+  {
+    zeCommandQueueDestroy(m_VkGPU.commandQueue);
+    m_VkGPU.commandQueue = nullptr;
+  }
+  if (m_VkGPU.context)
+  {
+    zeContextDestroy(m_VkGPU.context);
+    m_VkGPU.context = nullptr;
+  }
+#elif (VKFFT_BACKEND == METAL)
+  if (m_VkGPU.queue)
+  {
+    m_VkGPU.queue->release();
+    m_VkGPU.queue = nullptr;
+  }
+  if (m_VkGPU.device)
+  {
+    m_VkGPU.device->release();
+    m_VkGPU.device = nullptr;
   }
 #endif
 
