@@ -22,6 +22,7 @@
 
 #include "itkCommand.h"
 #include "itkImageFileWriter.h"
+#include "itkImageRegionConstIteratorWithIndex.h"
 #include "itkTestingMacros.h"
 #include "itkVkGlobalConfiguration.h"
 
@@ -55,6 +56,77 @@ public:
     std::cout << " " << processObject->GetProgress();
   }
 };
+
+// The DFT of a unit impulse located at index 0 has zero phase, so the
+// transformed line is constant (= the impulse value) while every other line
+// stays zero. Which line is constant identifies the transformed direction.
+// The inverse round-trip then recovers the original impulse.
+template <typename PrecisionType, unsigned int Dimension>
+bool
+runDirectionAxisTest()
+{
+  using ComplexType = std::complex<PrecisionType>;
+  using ComplexImageType = itk::Image<ComplexType, Dimension>;
+  using FilterType = itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType>;
+
+  const auto        valueTolerance{ static_cast<PrecisionType>(1e-4) };
+  const ComplexType zeroValue{ 0.0, 0.0 };
+  const ComplexType someValue{ 1.23, 4.567 };
+
+  typename ComplexImageType::SizeType size;
+  size.Fill(8);
+  auto image{ ComplexImageType::New() };
+  image->SetRegions(size);
+  image->AllocateInitialized();
+  typename ComplexImageType::IndexType origin;
+  origin.Fill(0);
+  image->SetPixel(origin, someValue);
+
+  bool passed{ true };
+  for (unsigned int direction{ 0 }; direction < Dimension; ++direction)
+  {
+    auto forwardFilter{ FilterType::New() };
+    forwardFilter->SetInput(image);
+    forwardFilter->SetDirection(direction);
+    forwardFilter->Update();
+    auto forward{ forwardFilter->GetOutput() };
+
+    bool                                                     axisPassed{ true };
+    itk::ImageRegionConstIteratorWithIndex<ComplexImageType> it(forward, forward->GetLargestPossibleRegion());
+    for (it.GoToBegin(); !it.IsAtEnd(); ++it)
+    {
+      bool       onTransformedLine{ true };
+      const auto idx{ it.GetIndex() };
+      for (unsigned int axis{ 0 }; axis < Dimension; ++axis)
+      {
+        if (axis != direction && idx[axis] != 0)
+        {
+          onTransformedLine = false;
+          break;
+        }
+      }
+      if (std::abs(it.Get() - (onTransformedLine ? someValue : zeroValue)) > valueTolerance)
+      {
+        axisPassed = false;
+      }
+    }
+
+    auto inverseFilter{ FilterType::New() };
+    inverseFilter->SetInput(forward);
+    inverseFilter->SetDirection(direction);
+    inverseFilter->SetTransformDirection(FilterType::TransformDirectionType::INVERSE);
+    inverseFilter->Update();
+    if (std::abs(inverseFilter->GetOutput()->GetPixel(origin) - someValue) > valueTolerance)
+    {
+      axisPassed = false;
+    }
+
+    std::cout << "Direction test (dim=" << Dimension << ", direction=" << direction << ") ... "
+              << (axisPassed ? "passed." : "failed.") << std::endl;
+    passed &= axisPassed;
+  }
+  return passed;
+}
 } // namespace
 
 template <typename PrecisionType>
@@ -103,6 +175,11 @@ runVkComplexToComplex1DFFTImageFilterSizesTest(const char * outputImageFileName)
   }
 
   bool testsPassed{ true };
+
+  // Verify the 1D FFT is applied along each requested direction (issue #19).
+  testsPassed &= runDirectionAxisTest<PrecisionType, 2>();
+  testsPassed &= runDirectionAxisTest<PrecisionType, 3>();
+
   {
     constexpr unsigned int Dimension{ 1 };
     using RealType = PrecisionType;
