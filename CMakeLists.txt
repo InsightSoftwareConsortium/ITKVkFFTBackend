@@ -137,7 +137,11 @@ if(BUILD_VKFFT)
     GIT_REPOSITORY ${VkFFT_GIT_REPOSITORY}
     GIT_TAG ${VkFFT_GIT_TAG}
     )
-  FetchContent_MakeAvailable(vkfft_lib)
+  FetchContent_GetProperties(vkfft_lib)
+  if(NOT vkfft_lib_POPULATED)
+    FetchContent_Populate(vkfft_lib)
+    add_subdirectory(${vkfft_lib_SOURCE_DIR} ${vkfft_lib_BINARY_DIR} EXCLUDE_FROM_ALL)
+  endif()
 
   set(vkfft_INCLUDE_DIR "${vkfft_lib_SOURCE_DIR}/vkFFT")
 else()

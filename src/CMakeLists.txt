@@ -7,7 +7,7 @@ set(VkFFTBackend_SRCS
 itk_module_add_library(VkFFTBackend ${VkFFTBackend_SRCS})
 
 if(${VKFFT_BACKEND} EQUAL 1)
-	target_link_libraries(VkFFTBackend PUBLIC ${CUDA_LIBRARIES} cuda ${CUDA_NVRTC_LIB} VkFFT half)
+	target_link_libraries(VkFFTBackend PUBLIC ${CUDA_LIBRARIES} CUDA::cuda_driver ${CUDA_NVRTC_LIB} VkFFT half)
   if(MSVC)
   else()
     set_source_files_properties(itkVkCommon.cpp PROPERTIES LANGUAGE CUDA)
