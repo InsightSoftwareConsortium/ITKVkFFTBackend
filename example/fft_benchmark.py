@@ -29,6 +29,7 @@ image_type = itk.Image[pixel_type, dimension]
 complex_image_type = itk.Image[itk.complex[pixel_type], dimension]
 fft_filter_type = itk.ForwardFFTImageFilter[image_type, complex_image_type]
 
+
 # Return time for filter.Update()
 def benchmark_fft(itk_fft_filter: fft_filter_type) -> float:
     start = time.time()

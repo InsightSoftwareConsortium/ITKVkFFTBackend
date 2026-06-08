@@ -9,9 +9,18 @@ if(NOT DEFINED VKFFT_BACKEND)
     find_library(_vkfft_metal_probe Metal)
     find_library(_vkfft_foundation_probe Foundation)
     find_library(_vkfft_quartzcore_probe QuartzCore)
-    if(_vkfft_metal_probe AND _vkfft_foundation_probe AND _vkfft_quartzcore_probe)
+    if(
+      _vkfft_metal_probe
+      AND
+        _vkfft_foundation_probe
+      AND
+        _vkfft_quartzcore_probe
+    )
       set(_vkfft_have_metal TRUE)
     endif()
+    unset(_vkfft_metal_probe CACHE)
+    unset(_vkfft_foundation_probe CACHE)
+    unset(_vkfft_quartzcore_probe CACHE)
   endif()
   if(CMAKE_CUDA_COMPILER)
     set(_vkfft_backend_default 1)
@@ -23,29 +32,61 @@ if(NOT DEFINED VKFFT_BACKEND)
 else()
   set(_vkfft_backend_default ${VKFFT_BACKEND})
 endif()
-set(VKFFT_BACKEND ${_vkfft_backend_default} CACHE STRING "1 - CUDA, 3 - OpenCL, 4 - Level Zero, 5 - Metal")
+set(
+  VKFFT_BACKEND
+  ${_vkfft_backend_default}
+  CACHE STRING
+  "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL, 4 - Level Zero, 5 - Metal"
+)
 if(${VKFFT_BACKEND} EQUAL 1)
-  enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
   set(CUDA_LIBRARIES CUDA::cudart)
-  find_library(CUDA_NVRTC_LIB libnvrtc nvrtc HINTS "${CUDAToolkit_LIBRARY_DIR}" "/usr/lib64" "/usr/local/cuda/lib64")
+  find_library(
+    CUDA_NVRTC_LIB
+    libnvrtc
+    nvrtc
+    HINTS
+      "${CUDAToolkit_LIBRARY_DIR}"
+      "/usr/lib64"
+      "/usr/local/cuda/lib64"
+  )
 elseif(${VKFFT_BACKEND} EQUAL 3)
   find_package(OpenCL REQUIRED)
 elseif(${VKFFT_BACKEND} EQUAL 4)
-  find_path(LevelZero_INCLUDE_DIR
-    NAMES level_zero/ze_api.h
-    HINTS ENV LEVEL_ZERO_ROOT ENV CMPLR_ROOT
-    PATH_SUFFIXES include)
-  find_library(LevelZero_LIBRARY
-    NAMES ze_loader
-    HINTS ENV LEVEL_ZERO_ROOT ENV CMPLR_ROOT
-    PATH_SUFFIXES lib lib64 lib/x64)
+  find_path(
+    LevelZero_INCLUDE_DIR
+    NAMES
+      level_zero/ze_api.h
+    HINTS
+    ENV LEVEL_ZERO_ROOT
+    ENV CMPLR_ROOT
+    PATH_SUFFIXES
+      include
+  )
+  find_library(
+    LevelZero_LIBRARY
+    NAMES
+      ze_loader
+    HINTS
+    ENV LEVEL_ZERO_ROOT
+    ENV CMPLR_ROOT
+    PATH_SUFFIXES
+      lib
+      lib64
+      lib/x64
+  )
   if(NOT LevelZero_INCLUDE_DIR OR NOT LevelZero_LIBRARY)
-    message(FATAL_ERROR "VKFFT_BACKEND=4 (Level Zero) requires the oneAPI Level Zero loader (ze_loader) and headers (level_zero/ze_api.h).")
+    message(
+      FATAL_ERROR
+      "VKFFT_BACKEND=4 (Level Zero) requires the oneAPI Level Zero loader (ze_loader) and headers (level_zero/ze_api.h)."
+    )
   endif()
 elseif(${VKFFT_BACKEND} EQUAL 5)
   if(NOT APPLE)
-    message(FATAL_ERROR "VKFFT_BACKEND=5 (Metal) requires Apple platforms (macOS/iOS, including Apple Silicon).")
+    message(
+      FATAL_ERROR
+      "VKFFT_BACKEND=5 (Metal) requires Apple platforms (macOS/iOS, including Apple Silicon)."
+    )
   endif()
   find_library(METAL_FRAMEWORK Metal REQUIRED)
   find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
