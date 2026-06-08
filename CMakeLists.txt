@@ -15,7 +15,11 @@ include(FetchContent)
 
 #### Set up VkFFT flags ####
 
-set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL, 4 - Level Zero, 5 - Metal")
+# itk-module-init.cmake normally establishes VKFFT_BACKEND (with auto-detection);
+# this is the fallback default when that file was not included first.
+if(NOT DEFINED VKFFT_BACKEND)
+  set(VKFFT_BACKEND 3 CACHE STRING "0 - Vulkan, 1 - CUDA, 2 - HIP, 3 - OpenCL, 4 - Level Zero, 5 - Metal")
+endif()
 add_compile_definitions(VKFFT_BACKEND=${VKFFT_BACKEND})
 
 if(VKFFT_BACKEND EQUAL 1)
