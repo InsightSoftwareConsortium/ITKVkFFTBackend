@@ -1,9 +1,13 @@
 name: Notebook tests
 
-on: [push, pull_request]
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
 
 jobs:
   nbmake:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'gpu-ci')
     runs-on: [self-hosted, notebook-gpu]
     name: Test notebooks with nbmake
     strategy:
