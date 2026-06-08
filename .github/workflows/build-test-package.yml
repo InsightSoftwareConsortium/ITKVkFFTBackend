@@ -68,7 +68,7 @@ jobs:
         python -m pip install ninja
 
     - name: Get specific version of CMake, Ninja
-      uses: lukka/get-cmake@latest
+      uses: lukka/get-cmake@v4.3.3
 
     - name: Download OpenCL-SDK
       if: matrix.os == 'macos-15'
@@ -321,11 +321,11 @@ jobs:
       shell: bash
 
     - name: Get specific version of CMake, Ninja
-      uses: lukka/get-cmake@latest
+      uses: lukka/get-cmake@v4.3.3
 
     - name: Install CUDA toolkit
       if: matrix.backend == 1
-      uses: Jimver/cuda-toolkit@v0.2.21
+      uses: Jimver/cuda-toolkit@v0.2.35
       with:
         method: network
         sub-packages: '["nvcc", "cudart", "cudart-dev", "nvrtc", "nvrtc-dev"]'
@@ -409,7 +409,7 @@ jobs:
 
     steps:
     - name: Get specific version of CMake, Ninja
-      uses: lukka/get-cmake@latest
+      uses: lukka/get-cmake@v4.3.3
 
     - uses: actions/checkout@v5
       with:
@@ -551,7 +551,7 @@ jobs:
         sudo xcode-select -s "${XCODE_APP}/Contents/Developer"
 
     - name: Get specific version of CMake, Ninja
-      uses: lukka/get-cmake@latest
+      uses: lukka/get-cmake@v4.3.3
 
     - name: 'Fetch build script'
       run: |
@@ -602,7 +602,7 @@ jobs:
 
     - name: Publish 🐍 Python 📦 package to PyPI
       if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
-      uses: pypa/gh-action-pypi-publish@master
+      uses: pypa/gh-action-pypi-publish@v1.14.0
       with:
         user: __token__
         password: ${{ secrets.pypi_password }}
