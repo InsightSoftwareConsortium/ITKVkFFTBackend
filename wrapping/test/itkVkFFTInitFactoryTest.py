@@ -68,7 +68,7 @@ image_filter_list = [
     ),
 ]
 
-for (base_filter_type, vk_filter_type) in image_filter_list:
+for base_filter_type, vk_filter_type in image_filter_list:
     # Instantiate through the ITK object factory
     image_filter = base_filter_type.New()
     assert image_filter is not None

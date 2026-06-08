@@ -17,7 +17,7 @@ runners:
     # Add a label to match runs-on param in Github Actions yml files
     labels:
       - gpu
-  
+
   - name: notebook-gpu-runner
     # Cloud Provider: Amazon Web Services
     cloud: aws

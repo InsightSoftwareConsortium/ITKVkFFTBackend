@@ -82,11 +82,11 @@ VkCommon::ConfigureBackend()
   res = cuDeviceGet(&m_VkGPU.device, (int)m_VkGPU.device_id);
   if (res != CUDA_SUCCESS)
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_GET_DEVICE };
-#if CUDA_VERSION >= 13000
+#  if CUDA_VERSION >= 13000
   res = cuCtxCreate(&m_VkGPU.context, nullptr, 0, (int)m_VkGPU.device);
-#else
+#  else
   res = cuCtxCreate(&m_VkGPU.context, 0, (int)m_VkGPU.device);
-#endif
+#  endif
   if (res != CUDA_SUCCESS)
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_CONTEXT };
 
@@ -146,9 +146,9 @@ VkCommon::ConfigureBackend()
       {
         m_VkGPU.platform = platforms[j];
         m_VkGPU.device = deviceList[i];
-        const cl_context_properties contextProperties[]{
-          CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties>(m_VkGPU.platform), 0
-        };
+        const cl_context_properties contextProperties[]{ CL_CONTEXT_PLATFORM,
+                                                         reinterpret_cast<cl_context_properties>(m_VkGPU.platform),
+                                                         0 };
         m_VkGPU.context = clCreateContext(contextProperties, 1, &m_VkGPU.device, NULL, NULL, &resCL);
         if (resCL != CL_SUCCESS)
         {
@@ -560,15 +560,16 @@ VkCommon::PerformFFT()
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
   }
 #elif (VKFFT_BACKEND == LEVEL_ZERO)
-  ze_result_t resZE{ ZE_RESULT_SUCCESS };
-  void *      inputGPUBuffer{ nullptr };
-  void *      GPUBuffer{ nullptr };
-  void *      outputGPUBuffer{ nullptr };
+  ze_result_t                resZE{ ZE_RESULT_SUCCESS };
+  void *                     inputGPUBuffer{ nullptr };
+  void *                     GPUBuffer{ nullptr };
+  void *                     outputGPUBuffer{ nullptr };
   ze_device_mem_alloc_desc_t deviceMemDesc{};
   deviceMemDesc.stype = ZE_STRUCTURE_TYPE_DEVICE_MEM_ALLOC_DESC;
 
   const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
-  resZE = zeMemAllocDevice(m_VkGPU.context, &deviceMemDesc, bufferBytes, m_VkParameters.PSize, m_VkGPU.device, &GPUBuffer);
+  resZE =
+    zeMemAllocDevice(m_VkGPU.context, &deviceMemDesc, bufferBytes, m_VkParameters.PSize, m_VkGPU.device, &GPUBuffer);
   if (resZE != ZE_RESULT_SUCCESS)
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
   m_VkFFTConfiguration.buffer = &GPUBuffer;
@@ -610,8 +611,13 @@ VkCommon::PerformFFT()
     resZE = zeCommandListCreateImmediate(m_VkGPU.context, m_VkGPU.device, &copyQueueDesc, &copyCommandList);
     if (resZE != ZE_RESULT_SUCCESS)
       return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_LIST };
-    resZE = zeCommandListAppendMemoryCopy(
-      copyCommandList, inputGPUBuffer, m_VkParameters.inputCPUBuffer, m_VkParameters.inputBufferBytes, nullptr, 0, nullptr);
+    resZE = zeCommandListAppendMemoryCopy(copyCommandList,
+                                          inputGPUBuffer,
+                                          m_VkParameters.inputCPUBuffer,
+                                          m_VkParameters.inputBufferBytes,
+                                          nullptr,
+                                          0,
+                                          nullptr);
     if (resZE != ZE_RESULT_SUCCESS)
       return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
     resZE = zeCommandQueueSynchronize(m_VkGPU.commandQueue, UINT32_MAX);
@@ -684,7 +690,7 @@ VkCommon::PerformFFT()
 #elif (VKFFT_BACKEND == OPENCL)
   launchParams.commandQueue = &m_VkGPU.commandQueue;
 #elif (VKFFT_BACKEND == LEVEL_ZERO)
-  ze_command_list_desc_t   commandListDescription{};
+  ze_command_list_desc_t commandListDescription{};
   commandListDescription.stype = ZE_STRUCTURE_TYPE_COMMAND_LIST_DESC;
   commandListDescription.commandQueueGroupOrdinal = m_VkGPU.commandQueueID;
   ze_command_list_handle_t launchCommandList{ nullptr };
@@ -693,7 +699,7 @@ VkCommon::PerformFFT()
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_LIST };
   launchParams.commandList = &launchCommandList;
 #elif (VKFFT_BACKEND == METAL)
-  MTL::CommandBuffer *        metalCommandBuffer = m_VkGPU.queue->commandBuffer();
+  MTL::CommandBuffer *         metalCommandBuffer = m_VkGPU.queue->commandBuffer();
   MTL::ComputeCommandEncoder * metalEncoder = metalCommandBuffer->computeCommandEncoder();
   launchParams.commandBuffer = metalCommandBuffer;
   launchParams.commandEncoder = metalEncoder;
