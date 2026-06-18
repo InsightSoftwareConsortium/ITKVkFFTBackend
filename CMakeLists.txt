@@ -30,6 +30,23 @@ add_compile_definitions(VKFFT_BACKEND=${VKFFT_BACKEND})
 if(VKFFT_BACKEND EQUAL 1)
   find_package(CUDAToolkit REQUIRED)
   list(APPEND VkFFTBackend_SYSTEM_INCLUDE_DIRS ${CUDAToolkit_INCLUDE_DIRS})
+
+  ## When this module is loaded by an app, resolve the CUDA imported targets
+  ## (CUDA::cudart, CUDA::cuda_driver, ...) referenced in its link interface.
+  set(
+    VkFFTBackend_EXPORT_CODE_INSTALL
+    "
+  find_package(CUDAToolkit REQUIRED)
+  "
+  )
+  set(
+    VkFFTBackend_EXPORT_CODE_BUILD
+    "
+  if(NOT ITK_BINARY_DIR)
+    find_package(CUDAToolkit REQUIRED)
+  endif()
+  "
+  )
 elseif(VKFFT_BACKEND EQUAL 3)
   set(
     CL_TARGET_OPENCL_VERSION
