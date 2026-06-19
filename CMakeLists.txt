@@ -148,7 +148,6 @@ elseif(VKFFT_BACKEND EQUAL 5)
     GIT_SHALLOW TRUE
   )
   FetchContent_MakeAvailable(metal_cpp)
-  list(APPEND VkFFTBackend_SYSTEM_INCLUDE_DIRS ${metal_cpp_SOURCE_DIR})
 
   find_library(METAL_FRAMEWORK Metal REQUIRED)
   find_library(FOUNDATION_FRAMEWORK Foundation REQUIRED)
@@ -253,7 +252,6 @@ else()
   )
   FetchContent_MakeAvailable(vkfft_header_only)
 endif()
-list(APPEND VkFFTBackend_SYSTEM_INCLUDE_DIRS ${vkfft_INCLUDE_DIR})
 
 #### Configure ITK module ####
 
@@ -264,6 +262,56 @@ if(NOT ITK_SOURCE_DIR)
 else()
   set(ITK_DIR ${CMAKE_BINARY_DIR})
   itk_module_impl()
+endif()
+
+# VkCommon's ABI layout is selected by VKFFT_BACKEND, so consumers must compile
+# itkVkCommon.h with the same value the library was built with; export it.
+target_compile_definitions(VkFFTBackend PUBLIC VKFFT_BACKEND=${VKFFT_BACKEND})
+
+# itkVkCommon.h includes the fetched vkFFT/metal-cpp headers. Carry their
+# build-tree locations on the target as a build-only property: BUILD_INTERFACE
+# keeps them out of install(EXPORT) so the exported target stays relocatable,
+# while installed consumers resolve the headers from ITK_INSTALL_INCLUDE_DIR
+# where they are installed below.
+target_include_directories(
+  VkFFTBackend
+  SYSTEM
+  PUBLIC
+    "$<BUILD_INTERFACE:${vkfft_INCLUDE_DIR}>"
+)
+if(VKFFT_BACKEND EQUAL 5)
+  target_include_directories(
+    VkFFTBackend
+    SYSTEM
+    PUBLIC
+      "$<BUILD_INTERFACE:${metal_cpp_SOURCE_DIR}>"
+  )
+endif()
+
+# itkVkCommon.h includes these fetched headers, so install them for consumers.
+install(
+  DIRECTORY
+    "${vkfft_INCLUDE_DIR}/"
+  DESTINATION "${ITK_INSTALL_INCLUDE_DIR}"
+  COMPONENT Development
+  FILES_MATCHING
+  PATTERN
+  "*.h"
+  PATTERN
+  "*.hpp"
+)
+if(VKFFT_BACKEND EQUAL 5)
+  install(
+    DIRECTORY
+      "${metal_cpp_SOURCE_DIR}/Foundation"
+      "${metal_cpp_SOURCE_DIR}/Metal"
+      "${metal_cpp_SOURCE_DIR}/QuartzCore"
+    DESTINATION "${ITK_INSTALL_INCLUDE_DIR}"
+    COMPONENT Development
+    FILES_MATCHING
+    PATTERN
+    "*.hpp"
+  )
 endif()
 
 if(VKFFT_BACKEND EQUAL 4)

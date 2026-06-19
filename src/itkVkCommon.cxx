@@ -40,21 +40,36 @@ VkCommon::Run(const VkGPU & vkGPU, const VkParameters & vkParameters)
 {
   VkFFTResult resFFT{ VKFFT_SUCCESS };
 
-  m_VkGPU = vkGPU;
-  m_VkParameters = vkParameters;
-  if (m_MustConfigure || m_VkGPU != m_VkGPUPrevious || m_VkParameters != m_VkParametersPrevious)
+  // Create the GPU context once and reuse it across calls. Reconfigure only when the
+  // requested device or the transform shape changes -- never merely because the CPU
+  // buffer pointers differ (they change on every call). The cached context is released
+  // in the destructor, so transforms no longer create (and leak) a context per call.
+  const bool deviceChanged{ vkGPU.device_id != m_VkGPU.device_id };
+  const bool shapeChanged{ !vkParameters.SameShapeAs(m_VkParameters) };
+  if (m_MustConfigure || deviceChanged || shapeChanged)
   {
     resFFT = this->ReleaseBackend();
     if (resFFT != VKFFT_SUCCESS)
     {
       return resFFT;
     }
+    m_VkGPU.device_id = vkGPU.device_id;
+    m_VkParameters = vkParameters;
     resFFT = this->ConfigureBackend();
     if (resFFT != VKFFT_SUCCESS)
     {
       return resFFT;
     }
     this->m_MustConfigure = false;
+  }
+  else
+  {
+    // Cached context and plan configuration are still valid; only the per-call CPU
+    // buffer pointers and byte counts differ.
+    m_VkParameters.inputCPUBuffer = vkParameters.inputCPUBuffer;
+    m_VkParameters.inputBufferBytes = vkParameters.inputBufferBytes;
+    m_VkParameters.outputCPUBuffer = vkParameters.outputCPUBuffer;
+    m_VkParameters.outputBufferBytes = vkParameters.outputBufferBytes;
   }
 
   resFFT = this->PerformFFT();
@@ -417,64 +432,62 @@ VkCommon::PerformFFT()
 #if (VKFFT_BACKEND == CUDA)
   cudaError resCu{ cudaSuccess };
 
-  cuFloatComplex * inputGPUBuffer{ nullptr };
-  cuFloatComplex * GPUBuffer{ nullptr };
-  cuFloatComplex * outputGPUBuffer{ nullptr };
+  // Make this instance's context current. With several filters (each its own VkCommon and
+  // CUDA context), the current context otherwise belongs to whichever filter configured last,
+  // and the runtime API would touch this instance's cached buffers under the wrong context.
+  cuCtxSetCurrent(m_VkGPU.context);
 
-  // Allocate the in-place-computation buffer
-  const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
-  resCu = cudaMalloc((void **)&GPUBuffer, bufferBytes);
-
-  if (resCu != cudaSuccess)
+  if (!m_PlanConfigured)
   {
-    std::cerr << __FILE__ "(" << __LINE__ << "): cudaMalloc returned " << resCu << std::endl;
-    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
-  }
-
-  m_VkFFTConfiguration.buffer = reinterpret_cast<void **>(&GPUBuffer);
-
-  if (m_VkParameters.fft == FFTEnum::C2C)
-  {
-    // For C2C computation we can do everything in the in-place-computation buffer.
-    inputGPUBuffer = GPUBuffer;
-    outputGPUBuffer = GPUBuffer;
-  }
-  else
-  {
-    if (m_VkParameters.I == DirectionEnum::FORWARD)
+    // Allocate the in-place-computation buffer (persistent for this shape).
+    const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
+    resCu = cudaMalloc((void **)&m_GPUBuffer, bufferBytes);
+    if (resCu != cudaSuccess)
     {
-      outputGPUBuffer = GPUBuffer;
+      std::cerr << __FILE__ "(" << __LINE__ << "): cudaMalloc returned " << resCu << std::endl;
+      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+    }
+    m_VkFFTConfiguration.buffer = reinterpret_cast<void **>(&m_GPUBuffer);
+
+    if (m_VkParameters.fft == FFTEnum::C2C)
+    {
+      // For C2C computation we can do everything in the in-place-computation buffer.
+      m_InputGPUBuffer = m_GPUBuffer;
+      m_OutputGPUBuffer = m_GPUBuffer;
+    }
+    else if (m_VkParameters.I == DirectionEnum::FORWARD)
+    {
+      m_OutputGPUBuffer = m_GPUBuffer;
 
       // Either R2FullH or R2HalfH.  For forward computation, we have a smaller input buffer.
       const uint64_t inputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.inputBufferSize };
-      resCu = cudaMalloc((void **)&inputGPUBuffer, inputBufferBytes);
+      resCu = cudaMalloc((void **)&m_InputGPUBuffer, inputBufferBytes);
       if (resCu != cudaSuccess)
       {
         std::cerr << __FILE__ "(" << __LINE__ << "): cudaMalloc returned " << resCu << std::endl;
         return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
       }
-
-      m_VkFFTConfiguration.inputBuffer = reinterpret_cast<void **>(&inputGPUBuffer);
+      m_VkFFTConfiguration.inputBuffer = reinterpret_cast<void **>(&m_InputGPUBuffer);
     }
     else
     {
-      inputGPUBuffer = GPUBuffer;
+      m_InputGPUBuffer = m_GPUBuffer;
 
       // Either R2FullH or R2HalfH.  For inverse computation, we have a smaller output buffer.
-      uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
-      resCu = cudaMalloc((void **)&outputGPUBuffer, outputBufferBytes);
+      const uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
+      resCu = cudaMalloc((void **)&m_OutputGPUBuffer, outputBufferBytes);
       if (resCu != cudaSuccess)
       {
         std::cerr << __FILE__ "(" << __LINE__ << "): cudaMalloc returned " << resCu << std::endl;
         return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
       }
-      m_VkFFTConfiguration.outputBuffer = reinterpret_cast<void **>(&outputGPUBuffer);
+      m_VkFFTConfiguration.outputBuffer = reinterpret_cast<void **>(&m_OutputGPUBuffer);
     }
   }
 
-  // Copy input from CPU to GPU
-  resCu =
-    cudaMemcpy(inputGPUBuffer, m_VkParameters.inputCPUBuffer, m_VkParameters.inputBufferBytes, cudaMemcpyHostToDevice);
+  // Copy input from CPU to GPU (per call)
+  resCu = cudaMemcpy(
+    m_InputGPUBuffer, m_VkParameters.inputCPUBuffer, m_VkParameters.inputBufferBytes, cudaMemcpyHostToDevice);
   if (resCu != cudaSuccess)
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): cudaMemcpy returned " << resCu << std::endl;
@@ -484,69 +497,68 @@ VkCommon::PerformFFT()
 #elif (VKFFT_BACKEND == OPENCL)
   cl_int resCL{ CL_SUCCESS };
 
-  // Configure the buffers.  Some of these three pointers will be nullptr or be duplicates of each
-  // other, so don't release all of them at the end.  All re-striding of data (for R2HalfH or R2FullH,
-  // regardless of forward vs. inverse) is done by VkFFT between the two GPU buffers it uses.
-  cl_mem inputGPUBuffer{ nullptr };  // Copy from CPU input buffer to this GPU buffer
-  cl_mem GPUBuffer{ nullptr };       // GPU buffer where main computation occurs
-  cl_mem outputGPUBuffer{ nullptr }; // Copy from this GPU buffer to CPU output buffer
-  if (m_VkParameters.fft == FFTEnum::C2C)
+  if (!m_PlanConfigured)
   {
-    // For C2C computation we can do everything in the in-place-computation buffer.
-    const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
-    GPUBuffer = clCreateBuffer(m_VkGPU.context, CL_MEM_READ_WRITE, bufferBytes, nullptr, &resCL);
-    inputGPUBuffer = GPUBuffer;
-    outputGPUBuffer = GPUBuffer;
-    if (resCL != CL_SUCCESS)
+    // Configure the persistent buffers for this shape. Some of m_*GPUBuffer alias each other
+    // (C2C, or the in-place direction), which the distinct-buffer free in ReleaseBackend handles.
+    if (m_VkParameters.fft == FFTEnum::C2C)
     {
-      std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
-      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
-    }
-    m_VkFFTConfiguration.buffer = &GPUBuffer;
-  }
-  else
-  {
-    // Either R2HalfH or R2FullH computation. Either forward or inverse.
-    const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
-    GPUBuffer = clCreateBuffer(m_VkGPU.context, CL_MEM_READ_WRITE, bufferBytes, nullptr, &resCL);
-    if (resCL != CL_SUCCESS)
-    {
-      std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
-      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
-    }
-    m_VkFFTConfiguration.buffer = &GPUBuffer;
-
-    if (m_VkParameters.I == DirectionEnum::FORWARD)
-    {
-      // Either R2FullH or R2HalfH.  For forward computation, we have a smaller input buffer.
-      const uint64_t inputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.inputBufferSize };
-      inputGPUBuffer = clCreateBuffer(m_VkGPU.context, CL_MEM_READ_WRITE, inputBufferBytes, nullptr, &resCL);
-      outputGPUBuffer = GPUBuffer;
+      // For C2C computation we can do everything in the in-place-computation buffer.
+      const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
+      m_GPUBuffer = clCreateBuffer(m_VkGPU.context, CL_MEM_READ_WRITE, bufferBytes, nullptr, &resCL);
+      m_InputGPUBuffer = m_GPUBuffer;
+      m_OutputGPUBuffer = m_GPUBuffer;
       if (resCL != CL_SUCCESS)
       {
         std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
         return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
       }
-      m_VkFFTConfiguration.inputBuffer = &inputGPUBuffer;
+      m_VkFFTConfiguration.buffer = &m_GPUBuffer;
     }
     else
     {
-      // Either R2FullH or R2HalfH.  For inverse computation, we have a smaller output buffer.
-      uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
-      inputGPUBuffer = GPUBuffer;
-      outputGPUBuffer = clCreateBuffer(m_VkGPU.context, CL_MEM_READ_WRITE, outputBufferBytes, nullptr, &resCL);
+      // Either R2HalfH or R2FullH computation. Either forward or inverse.
+      const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
+      m_GPUBuffer = clCreateBuffer(m_VkGPU.context, CL_MEM_READ_WRITE, bufferBytes, nullptr, &resCL);
       if (resCL != CL_SUCCESS)
       {
         std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
         return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
       }
-      m_VkFFTConfiguration.outputBuffer = &outputGPUBuffer;
+      m_VkFFTConfiguration.buffer = &m_GPUBuffer;
+
+      if (m_VkParameters.I == DirectionEnum::FORWARD)
+      {
+        // Either R2FullH or R2HalfH.  For forward computation, we have a smaller input buffer.
+        const uint64_t inputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.inputBufferSize };
+        m_InputGPUBuffer = clCreateBuffer(m_VkGPU.context, CL_MEM_READ_WRITE, inputBufferBytes, nullptr, &resCL);
+        m_OutputGPUBuffer = m_GPUBuffer;
+        if (resCL != CL_SUCCESS)
+        {
+          std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
+          return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+        }
+        m_VkFFTConfiguration.inputBuffer = &m_InputGPUBuffer;
+      }
+      else
+      {
+        // Either R2FullH or R2HalfH.  For inverse computation, we have a smaller output buffer.
+        const uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
+        m_InputGPUBuffer = m_GPUBuffer;
+        m_OutputGPUBuffer = clCreateBuffer(m_VkGPU.context, CL_MEM_READ_WRITE, outputBufferBytes, nullptr, &resCL);
+        if (resCL != CL_SUCCESS)
+        {
+          std::cerr << __FILE__ "(" << __LINE__ << "): clCreateBuffer returned " << resCL << std::endl;
+          return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+        }
+        m_VkFFTConfiguration.outputBuffer = &m_OutputGPUBuffer;
+      }
     }
   }
 
-  // Copy input from CPU to GPU
+  // Copy input from CPU to GPU (per call)
   resCL = clEnqueueWriteBuffer(m_VkGPU.commandQueue,
-                               inputGPUBuffer,
+                               m_InputGPUBuffer,
                                CL_TRUE,
                                0,
                                m_VkParameters.inputBufferBytes,
@@ -560,47 +572,48 @@ VkCommon::PerformFFT()
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
   }
 #elif (VKFFT_BACKEND == LEVEL_ZERO)
-  ze_result_t                resZE{ ZE_RESULT_SUCCESS };
-  void *                     inputGPUBuffer{ nullptr };
-  void *                     GPUBuffer{ nullptr };
-  void *                     outputGPUBuffer{ nullptr };
-  ze_device_mem_alloc_desc_t deviceMemDesc{};
-  deviceMemDesc.stype = ZE_STRUCTURE_TYPE_DEVICE_MEM_ALLOC_DESC;
+  ze_result_t resZE{ ZE_RESULT_SUCCESS };
 
-  const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
-  resZE =
-    zeMemAllocDevice(m_VkGPU.context, &deviceMemDesc, bufferBytes, m_VkParameters.PSize, m_VkGPU.device, &GPUBuffer);
-  if (resZE != ZE_RESULT_SUCCESS)
-    return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
-  m_VkFFTConfiguration.buffer = &GPUBuffer;
+  if (!m_PlanConfigured)
+  {
+    ze_device_mem_alloc_desc_t deviceMemDesc{};
+    deviceMemDesc.stype = ZE_STRUCTURE_TYPE_DEVICE_MEM_ALLOC_DESC;
 
-  if (m_VkParameters.fft == FFTEnum::C2C)
-  {
-    inputGPUBuffer = GPUBuffer;
-    outputGPUBuffer = GPUBuffer;
-  }
-  else if (m_VkParameters.I == DirectionEnum::FORWARD)
-  {
-    const uint64_t inputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.inputBufferSize };
+    const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
     resZE = zeMemAllocDevice(
-      m_VkGPU.context, &deviceMemDesc, inputBufferBytes, m_VkParameters.PSize, m_VkGPU.device, &inputGPUBuffer);
+      m_VkGPU.context, &deviceMemDesc, bufferBytes, m_VkParameters.PSize, m_VkGPU.device, &m_GPUBuffer);
     if (resZE != ZE_RESULT_SUCCESS)
       return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
-    outputGPUBuffer = GPUBuffer;
-    m_VkFFTConfiguration.inputBuffer = &inputGPUBuffer;
-  }
-  else
-  {
-    const uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
-    resZE = zeMemAllocDevice(
-      m_VkGPU.context, &deviceMemDesc, outputBufferBytes, m_VkParameters.PSize, m_VkGPU.device, &outputGPUBuffer);
-    if (resZE != ZE_RESULT_SUCCESS)
-      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
-    inputGPUBuffer = GPUBuffer;
-    m_VkFFTConfiguration.outputBuffer = &outputGPUBuffer;
+    m_VkFFTConfiguration.buffer = &m_GPUBuffer;
+
+    if (m_VkParameters.fft == FFTEnum::C2C)
+    {
+      m_InputGPUBuffer = m_GPUBuffer;
+      m_OutputGPUBuffer = m_GPUBuffer;
+    }
+    else if (m_VkParameters.I == DirectionEnum::FORWARD)
+    {
+      const uint64_t inputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.inputBufferSize };
+      resZE = zeMemAllocDevice(
+        m_VkGPU.context, &deviceMemDesc, inputBufferBytes, m_VkParameters.PSize, m_VkGPU.device, &m_InputGPUBuffer);
+      if (resZE != ZE_RESULT_SUCCESS)
+        return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+      m_OutputGPUBuffer = m_GPUBuffer;
+      m_VkFFTConfiguration.inputBuffer = &m_InputGPUBuffer;
+    }
+    else
+    {
+      const uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
+      resZE = zeMemAllocDevice(
+        m_VkGPU.context, &deviceMemDesc, outputBufferBytes, m_VkParameters.PSize, m_VkGPU.device, &m_OutputGPUBuffer);
+      if (resZE != ZE_RESULT_SUCCESS)
+        return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+      m_InputGPUBuffer = m_GPUBuffer;
+      m_VkFFTConfiguration.outputBuffer = &m_OutputGPUBuffer;
+    }
   }
 
-  // Host -> device copy via an immediate command list on the compute/copy queue group.
+  // Host -> device copy via an immediate command list on the compute/copy queue group (per call).
   {
     ze_command_queue_desc_t copyQueueDesc{};
     copyQueueDesc.stype = ZE_STRUCTURE_TYPE_COMMAND_QUEUE_DESC;
@@ -612,7 +625,7 @@ VkCommon::PerformFFT()
     if (resZE != ZE_RESULT_SUCCESS)
       return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_LIST };
     resZE = zeCommandListAppendMemoryCopy(copyCommandList,
-                                          inputGPUBuffer,
+                                          m_InputGPUBuffer,
                                           m_VkParameters.inputCPUBuffer,
                                           m_VkParameters.inputBufferBytes,
                                           nullptr,
@@ -628,57 +641,63 @@ VkCommon::PerformFFT()
 #elif (VKFFT_BACKEND == METAL)
   // Metal shared-storage buffers are CPU-visible on Apple unified-memory systems,
   // so host<->device transfers reduce to memcpy into/out of MTL::Buffer::contents().
-  MTL::Buffer * inputGPUBuffer{ nullptr };
-  MTL::Buffer * GPUBuffer{ nullptr };
-  MTL::Buffer * outputGPUBuffer{ nullptr };
-  const auto    storageMode = MTL::ResourceStorageModeShared;
-  if (m_VkParameters.fft == FFTEnum::C2C)
+  const auto storageMode = MTL::ResourceStorageModeShared;
+  if (!m_PlanConfigured)
   {
-    const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
-    GPUBuffer = m_VkGPU.device->newBuffer(bufferBytes, storageMode);
-    if (GPUBuffer == nullptr)
-      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
-    inputGPUBuffer = GPUBuffer;
-    outputGPUBuffer = GPUBuffer;
-    m_VkFFTConfiguration.buffer = &GPUBuffer;
-  }
-  else
-  {
-    const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
-    GPUBuffer = m_VkGPU.device->newBuffer(bufferBytes, storageMode);
-    if (GPUBuffer == nullptr)
-      return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
-    m_VkFFTConfiguration.buffer = &GPUBuffer;
-
-    if (m_VkParameters.I == DirectionEnum::FORWARD)
+    if (m_VkParameters.fft == FFTEnum::C2C)
     {
-      const uint64_t inputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.inputBufferSize };
-      inputGPUBuffer = m_VkGPU.device->newBuffer(inputBufferBytes, storageMode);
-      if (inputGPUBuffer == nullptr)
+      const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
+      m_GPUBuffer = m_VkGPU.device->newBuffer(bufferBytes, storageMode);
+      if (m_GPUBuffer == nullptr)
         return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
-      outputGPUBuffer = GPUBuffer;
-      m_VkFFTConfiguration.inputBuffer = &inputGPUBuffer;
+      m_InputGPUBuffer = m_GPUBuffer;
+      m_OutputGPUBuffer = m_GPUBuffer;
+      m_VkFFTConfiguration.buffer = &m_GPUBuffer;
     }
     else
     {
-      const uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
-      inputGPUBuffer = GPUBuffer;
-      outputGPUBuffer = m_VkGPU.device->newBuffer(outputBufferBytes, storageMode);
-      if (outputGPUBuffer == nullptr)
+      const uint64_t bufferBytes{ 2UL * m_VkParameters.PSize * *m_VkFFTConfiguration.bufferSize };
+      m_GPUBuffer = m_VkGPU.device->newBuffer(bufferBytes, storageMode);
+      if (m_GPUBuffer == nullptr)
         return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
-      m_VkFFTConfiguration.outputBuffer = &outputGPUBuffer;
+      m_VkFFTConfiguration.buffer = &m_GPUBuffer;
+
+      if (m_VkParameters.I == DirectionEnum::FORWARD)
+      {
+        const uint64_t inputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.inputBufferSize };
+        m_InputGPUBuffer = m_VkGPU.device->newBuffer(inputBufferBytes, storageMode);
+        if (m_InputGPUBuffer == nullptr)
+          return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+        m_OutputGPUBuffer = m_GPUBuffer;
+        m_VkFFTConfiguration.inputBuffer = &m_InputGPUBuffer;
+      }
+      else
+      {
+        const uint64_t outputBufferBytes{ 1UL * m_VkParameters.PSize * *m_VkFFTConfiguration.outputBufferSize };
+        m_InputGPUBuffer = m_GPUBuffer;
+        m_OutputGPUBuffer = m_VkGPU.device->newBuffer(outputBufferBytes, storageMode);
+        if (m_OutputGPUBuffer == nullptr)
+          return VkFFTResult{ VKFFT_ERROR_FAILED_TO_ALLOCATE };
+        m_VkFFTConfiguration.outputBuffer = &m_OutputGPUBuffer;
+      }
     }
   }
 
-  std::memcpy(inputGPUBuffer->contents(), m_VkParameters.inputCPUBuffer, m_VkParameters.inputBufferBytes);
+  std::memcpy(m_InputGPUBuffer->contents(), m_VkParameters.inputCPUBuffer, m_VkParameters.inputBufferBytes);
 #endif
 
-  // Initialize applications. This function loads shaders, creates pipeline and configures FFT based on configuration
-  // file. No buffer allocations inside VkFFT library.
-  VkFFTApplication app{};
-  resFFT = initializeVkFFT(&app, m_VkFFTConfiguration);
-  if (resFFT != VKFFT_SUCCESS)
-    return resFFT;
+  // Initialize the application once per plan. This loads shaders, creates the pipeline, and
+  // compiles the FFT kernels (nvrtc for CUDA, clBuildProgram for OpenCL); it allocates no
+  // buffers. The compiled plan and the persistent buffers above are reused across same-shape
+  // calls -- buffers are bound per call through VkFFTLaunchParams below.
+  if (!m_PlanConfigured)
+  {
+    m_VkFFTApplication = new VkFFTApplication{};
+    resFFT = initializeVkFFT(m_VkFFTApplication, m_VkFFTConfiguration);
+    if (resFFT != VKFFT_SUCCESS)
+      return resFFT;
+    m_PlanConfigured = true;
+  }
 
   // Submit FFT or iFFT.
   VkFFTLaunchParams launchParams{};
@@ -705,7 +724,7 @@ VkCommon::PerformFFT()
   launchParams.commandEncoder = metalEncoder;
 #endif
 
-  resFFT = VkFFTAppend(&app, m_VkParameters.I == DirectionEnum::INVERSE ? 1 : -1, &launchParams);
+  resFFT = VkFFTAppend(m_VkFFTApplication, m_VkParameters.I == DirectionEnum::INVERSE ? 1 : -1, &launchParams);
   if (resFFT != VKFFT_SUCCESS)
     return resFFT;
 
@@ -717,20 +736,13 @@ VkCommon::PerformFFT()
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_SYNCHRONIZE };
   }
 
-  // Copy result from GPU to CPU
+  // Copy result from GPU to CPU (per call); persistent buffers are freed in ReleaseBackend().
   resCu = cudaMemcpy(
-    m_VkParameters.outputCPUBuffer, outputGPUBuffer, m_VkParameters.outputBufferBytes, cudaMemcpyDeviceToHost);
+    m_VkParameters.outputCPUBuffer, m_OutputGPUBuffer, m_VkParameters.outputBufferBytes, cudaMemcpyDeviceToHost);
   if (resCu != cudaSuccess)
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): cudaMemcpy returned " << resCu << std::endl;
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
-  }
-
-  // Release mem buffers
-  cudaFree(inputGPUBuffer);
-  if (m_VkParameters.fft != FFTEnum::C2C)
-  {
-    cudaFree(outputGPUBuffer);
   }
 
 #elif (VKFFT_BACKEND == OPENCL)
@@ -741,9 +753,9 @@ VkCommon::PerformFFT()
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_SYNCHRONIZE };
   }
 
-  // Copy result from GPU to CPU
+  // Copy result from GPU to CPU (per call); persistent buffers are freed in ReleaseBackend().
   resCL = clEnqueueReadBuffer(m_VkGPU.commandQueue,
-                              outputGPUBuffer,
+                              m_OutputGPUBuffer,
                               CL_TRUE,
                               0,
                               m_VkParameters.outputBufferBytes,
@@ -755,13 +767,6 @@ VkCommon::PerformFFT()
   {
     std::cerr << __FILE__ "(" << __LINE__ << "): clEnqueueReadBuffer returned " << resCL << std::endl;
     return VkFFTResult{ VKFFT_ERROR_FAILED_TO_COPY };
-  }
-
-  clReleaseMemObject(inputGPUBuffer);
-  if (m_VkParameters.fft != FFTEnum::C2C)
-  {
-    // Release other buffer too
-    clReleaseMemObject(outputGPUBuffer);
   }
 #elif (VKFFT_BACKEND == LEVEL_ZERO)
   resZE = zeCommandListClose(launchCommandList);
@@ -788,7 +793,7 @@ VkCommon::PerformFFT()
       return VkFFTResult{ VKFFT_ERROR_FAILED_TO_CREATE_COMMAND_LIST };
     resZE = zeCommandListAppendMemoryCopy(copyCommandList,
                                           m_VkParameters.outputCPUBuffer,
-                                          outputGPUBuffer,
+                                          m_OutputGPUBuffer,
                                           m_VkParameters.outputBufferBytes,
                                           nullptr,
                                           0,
@@ -800,32 +805,14 @@ VkCommon::PerformFFT()
       return VkFFTResult{ VKFFT_ERROR_FAILED_TO_SYNCHRONIZE };
     zeCommandListDestroy(copyCommandList);
   }
-
-  // GPUBuffer aliases input or output in the C2C / inverse-R2H cases; free it once.
-  zeMemFree(m_VkGPU.context, GPUBuffer);
-  if (m_VkParameters.fft != FFTEnum::C2C)
-  {
-    if (m_VkParameters.I == DirectionEnum::FORWARD)
-      zeMemFree(m_VkGPU.context, inputGPUBuffer);
-    else
-      zeMemFree(m_VkGPU.context, outputGPUBuffer);
-  }
+  // Persistent buffers are freed in ReleaseBackend().
 #elif (VKFFT_BACKEND == METAL)
   metalEncoder->endEncoding();
   metalCommandBuffer->commit();
   metalCommandBuffer->waitUntilCompleted();
 
-  std::memcpy(m_VkParameters.outputCPUBuffer, outputGPUBuffer->contents(), m_VkParameters.outputBufferBytes);
-
-  // The C2C in-place case aliases input/output to GPUBuffer; release once.
-  GPUBuffer->release();
-  if (m_VkParameters.fft != FFTEnum::C2C)
-  {
-    if (m_VkParameters.I == DirectionEnum::FORWARD)
-      inputGPUBuffer->release();
-    else
-      outputGPUBuffer->release();
-  }
+  std::memcpy(m_VkParameters.outputCPUBuffer, m_OutputGPUBuffer->contents(), m_VkParameters.outputBufferBytes);
+  // Persistent buffers are released in ReleaseBackend().
 #endif
 
   if (m_VkParameters.fft == FFTEnum::R2FullH && m_VkParameters.I == DirectionEnum::FORWARD)
@@ -873,7 +860,8 @@ VkCommon::PerformFFT()
       break;
     } // end switch (m_VkParameters.P)
   } // end if(m_VkParameters.fft == R2FullH && m_VkParameters.I == DirectionEnum::FORWARD)
-  deleteVkFFT(&app);
+  // The plan (m_VkFFTApplication) and the GPU buffers persist for reuse and are released in
+  // ReleaseBackend() on the next device/shape change or at destruction.
 
   return resFFT;
 }
@@ -883,14 +871,50 @@ VkCommon::ReleaseBackend()
 {
   VkFFTResult resFFT{ VKFFT_SUCCESS };
 
-  // Return to launchVkFFT code
 #if (VKFFT_BACKEND == CUDA)
+  // Make this instance's context current so deleteVkFFT and the buffer frees below operate on
+  // the context that owns these GPU resources, not whichever filter configured last.
+  if (m_VkGPU.context)
+    cuCtxSetCurrent(m_VkGPU.context);
+#endif
+
+  // Release the cached plan and persistent buffers before the context is destroyed; their GPU
+  // resources belong to it. Distinct, non-aliased buffers are each freed exactly once.
+  if (m_PlanConfigured)
+  {
+    deleteVkFFT(m_VkFFTApplication);
+    delete m_VkFFTApplication;
+    m_VkFFTApplication = nullptr;
+    m_PlanConfigured = false;
+  }
+
+#if (VKFFT_BACKEND == CUDA)
+  if (m_GPUBuffer)
+    cudaFree(m_GPUBuffer);
+  if (m_InputGPUBuffer && m_InputGPUBuffer != m_GPUBuffer)
+    cudaFree(m_InputGPUBuffer);
+  if (m_OutputGPUBuffer && m_OutputGPUBuffer != m_GPUBuffer && m_OutputGPUBuffer != m_InputGPUBuffer)
+    cudaFree(m_OutputGPUBuffer);
+  m_GPUBuffer = nullptr;
+  m_InputGPUBuffer = nullptr;
+  m_OutputGPUBuffer = nullptr;
   if (m_VkGPU.context)
   {
     cuCtxDestroy(m_VkGPU.context);
+    m_VkGPU.context = 0;
   }
 #elif (VKFFT_BACKEND == OPENCL)
   cl_int resCL{ CL_SUCCESS };
+
+  if (m_GPUBuffer)
+    clReleaseMemObject(m_GPUBuffer);
+  if (m_InputGPUBuffer && m_InputGPUBuffer != m_GPUBuffer)
+    clReleaseMemObject(m_InputGPUBuffer);
+  if (m_OutputGPUBuffer && m_OutputGPUBuffer != m_GPUBuffer && m_OutputGPUBuffer != m_InputGPUBuffer)
+    clReleaseMemObject(m_OutputGPUBuffer);
+  m_GPUBuffer = nullptr;
+  m_InputGPUBuffer = nullptr;
+  m_OutputGPUBuffer = nullptr;
 
   if (m_VkGPU.commandQueue)
   {
@@ -900,6 +924,7 @@ VkCommon::ReleaseBackend()
       std::cerr << __FILE__ "(" << __LINE__ << "): clReleaseCommandQueue returned " << resCL << std::endl;
       return VkFFTResult{ VKFFT_ERROR_FAILED_TO_RELEASE_COMMAND_QUEUE };
     }
+    m_VkGPU.commandQueue = 0;
   }
 
   if (m_VkGPU.context)
@@ -910,8 +935,22 @@ VkCommon::ReleaseBackend()
       std::cerr << __FILE__ "(" << __LINE__ << "): clReleaseContext returned " << resCL << std::endl;
       return VkFFTResult{ VKFFT_ERROR_FAILED_TO_RELEASE_COMMAND_QUEUE };
     }
+    m_VkGPU.context = 0;
   }
 #elif (VKFFT_BACKEND == LEVEL_ZERO)
+  if (m_VkGPU.context)
+  {
+    if (m_GPUBuffer)
+      zeMemFree(m_VkGPU.context, m_GPUBuffer);
+    if (m_InputGPUBuffer && m_InputGPUBuffer != m_GPUBuffer)
+      zeMemFree(m_VkGPU.context, m_InputGPUBuffer);
+    if (m_OutputGPUBuffer && m_OutputGPUBuffer != m_GPUBuffer && m_OutputGPUBuffer != m_InputGPUBuffer)
+      zeMemFree(m_VkGPU.context, m_OutputGPUBuffer);
+  }
+  m_GPUBuffer = nullptr;
+  m_InputGPUBuffer = nullptr;
+  m_OutputGPUBuffer = nullptr;
+
   if (m_VkGPU.commandQueue)
   {
     zeCommandQueueDestroy(m_VkGPU.commandQueue);
@@ -923,6 +962,16 @@ VkCommon::ReleaseBackend()
     m_VkGPU.context = nullptr;
   }
 #elif (VKFFT_BACKEND == METAL)
+  if (m_GPUBuffer)
+    m_GPUBuffer->release();
+  if (m_InputGPUBuffer && m_InputGPUBuffer != m_GPUBuffer)
+    m_InputGPUBuffer->release();
+  if (m_OutputGPUBuffer && m_OutputGPUBuffer != m_GPUBuffer && m_OutputGPUBuffer != m_InputGPUBuffer)
+    m_OutputGPUBuffer->release();
+  m_GPUBuffer = nullptr;
+  m_InputGPUBuffer = nullptr;
+  m_OutputGPUBuffer = nullptr;
+
   if (m_VkGPU.queue)
   {
     m_VkGPU.queue->release();

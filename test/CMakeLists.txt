@@ -7,6 +7,7 @@ set(
   itkVkComplexToComplex1DFFTImageFilterSizesTest.cxx
   itkVkDiscreteGaussianImageFilterTest.cxx
   itkVkFFTImageFilterFactoryTest.cxx
+  itkVkFFTRepeatedTransformLeakTest.cxx
   itkVkForwardInverseFFTImageFilterTest.cxx
   itkVkForwardInverse1DFFTImageFilterTest.cxx
   itkVkForward1DFFTImageFilterBaselineTest.cxx
@@ -175,6 +176,13 @@ itk_add_test(NAME itkVkForwardInverseFFTImageFilterTestDouble
   COMMAND VkFFTBackendTestDriver itkVkForwardInverseFFTImageFilterTest double
 )
 _vkfft_disable_on_unsupported_fp64(itkVkForwardInverseFFTImageFilterTestDouble)
+
+# Regression guard for the per-Update GPU context leak: reuse one filter for
+# many transforms (precision, size^3, iterations). Before context caching this
+# aborted with a VkFFT out-of-memory error after a few dozen iterations.
+itk_add_test(NAME itkVkFFTRepeatedTransformLeakTestFloat
+  COMMAND VkFFTBackendTestDriver itkVkFFTRepeatedTransformLeakTest float 64 200
+)
 
 # pocl (CPU OpenCL) computes VkFFT's size-19 Bluestein inverse incorrectly, so
 # the hosted pocl-backed leg runs the round-trip tests capped at size 16
