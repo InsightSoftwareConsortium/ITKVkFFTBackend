@@ -45,7 +45,7 @@ image_filter_list = [
         itk.VkHalfHermitianToRealInverseFFTImageFilter[complex_image_type],
     ),
     (
-        itk.Forward1DFFTImageFilter[real_image_type],
+        itk.Forward1DFFTImageFilter[real_image_type, complex_image_type],
         itk.VkForward1DFFTImageFilter[real_image_type],
     ),
     (
@@ -53,7 +53,7 @@ image_filter_list = [
         itk.VkForwardFFTImageFilter[real_image_type],
     ),
     (
-        itk.Inverse1DFFTImageFilter[complex_image_type],
+        itk.Inverse1DFFTImageFilter[complex_image_type, real_image_type],
         itk.VkInverse1DFFTImageFilter[complex_image_type],
     ),
     (

@@ -21,7 +21,11 @@
 
 #include "itkComplexToComplex1DFFTImageFilter.h"
 #include "itkVkComplexToComplex1DFFTImageFilter.h"
-#include "itkVnlComplexToComplex1DFFTImageFilter.h"
+#if ITK_VERSION_MAJOR >= 6
+#  include "itkPocketFFTComplexToComplex1DFFTImageFilter.h"
+#else
+#  include "itkVnlComplexToComplex1DFFTImageFilter.h"
+#endif
 #include "itkVkFFTImageFilterInitFactory.h"
 
 #include "itkFFTImageFilterFactory.h"
@@ -37,14 +41,23 @@ runVkFFTImageFilterFactoryTest()
   constexpr unsigned int Dimension{ 2 };
   using ComplexImageType = itk::Image<std::complex<PrecisionType>, Dimension>;
   using FFTBaseType = itk::ComplexToComplex1DFFTImageFilter<ComplexImageType>;
+#if ITK_VERSION_MAJOR >= 6
+  using FFTDefaultSubclassType = itk::PocketFFTComplexToComplex1DFFTImageFilter<ComplexImageType>;
+#else
   using FFTDefaultSubclassType = itk::VnlComplexToComplex1DFFTImageFilter<ComplexImageType>;
+#endif
   using FFTVkSubclassType = itk::VkComplexToComplex1DFFTImageFilter<ComplexImageType>;
 
   // Verify default is non-accelerated implementation
   typename FFTBaseType::Pointer fft{ FFTBaseType::New() };
   FFTDefaultSubclassType *      vnlFFT = dynamic_cast<FFTDefaultSubclassType *>(fft.GetPointer());
   ITK_TEST_EXPECT_TRUE(vnlFFT != nullptr);
+#if ITK_VERSION_MAJOR >= 6
+  ITK_EXERCISE_BASIC_OBJECT_METHODS(
+    vnlFFT, PocketFFTComplexToComplex1DFFTImageFilter, ComplexToComplex1DFFTImageFilter);
+#else
   ITK_EXERCISE_BASIC_OBJECT_METHODS(vnlFFT, VnlComplexToComplex1DFFTImageFilter, ComplexToComplex1DFFTImageFilter);
+#endif
 
   // Register factory and verify override
   using FactoryType = itk::FFTImageFilterFactory<itk::VkComplexToComplex1DFFTImageFilter>;
@@ -62,7 +75,12 @@ runVkFFTImageFilterFactoryTest()
   fft = FFTBaseType::New();
   vnlFFT = dynamic_cast<FFTDefaultSubclassType *>(fft.GetPointer());
   ITK_TEST_EXPECT_TRUE(vnlFFT != nullptr);
+#if ITK_VERSION_MAJOR >= 6
+  ITK_EXERCISE_BASIC_OBJECT_METHODS(
+    vnlFFT, PocketFFTComplexToComplex1DFFTImageFilter, ComplexToComplex1DFFTImageFilter);
+#else
   ITK_EXERCISE_BASIC_OBJECT_METHODS(vnlFFT, VnlComplexToComplex1DFFTImageFilter, ComplexToComplex1DFFTImageFilter);
+#endif
 
   // Verify factory initialization successfully registers factories
   using FactoryInitializerType = itk::VkFFTImageFilterInitFactory;
